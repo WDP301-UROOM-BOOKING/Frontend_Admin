@@ -1,5 +1,5 @@
 import React from "react";
-import * as Routers from "../../../utils/Routes";
+import * as Routers from "../../utils/Routes";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../SidebarAdmin";
 export default function ApprovalAccountHotelhost() {

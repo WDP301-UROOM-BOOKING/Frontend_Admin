@@ -14,8 +14,8 @@ import {
 import "bootstrap/dist/css/bootstrap.min.css";
 import { Star, StarFill } from "react-bootstrap-icons";
 import "bootstrap/dist/css/bootstrap.min.css";
-import "../../../css/admin/ListFeedback.css";
-import * as Routers from "../../../utils/Routes";
+import "../../css/admin/ListFeedback.css";
+import * as Routers from "../../utils/Routes";
 import { useNavigate } from "react-router-dom";
 import { X } from "react-bootstrap-icons";
 

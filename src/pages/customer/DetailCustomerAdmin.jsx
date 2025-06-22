@@ -11,7 +11,7 @@ import {
 } from "react-bootstrap";
 import { Calendar, Lock, Unlock } from "lucide-react";
 import "bootstrap/dist/css/bootstrap.min.css";
-import ConfirmationModal from "components/ConfirmationModal";
+import ConfirmationModal from "@components/ConfirmationModal";
 
 export default function CustomerDetail({ show, handleClose }) {
   // State to control the avatar modal

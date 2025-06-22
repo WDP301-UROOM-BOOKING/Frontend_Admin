@@ -3,7 +3,7 @@ import "bootstrap/dist/css/bootstrap.min.css";
 // import { MdLocationOn } from "react-icons/md";
 
 
-import * as Routers from "../../../utils/Routes";
+import * as Routers from "../../utils/Routes";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 const HotelManagement = ({setActiveTab}) => {

@@ -1,7 +1,7 @@
 import "bootstrap/dist/css/bootstrap.min.css";
 import { useState } from "react";
 import CustomerDetail from "./DetailCustomerAdmin";
-import ConfirmationModal from "components/ConfirmationModal";
+import ConfirmationModal from "@components/ConfirmationModal";
 function ListCustomerAdmin() {
   const [showModal, setShowModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);

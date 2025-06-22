@@ -1,7 +1,8 @@
-import "../../css/admin/Dashboard.css";
+import "../css/admin/Dashboard.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import { useState, useEffect, useRef } from "react";
 import { Line, Bar, Pie, Doughnut } from "react-chartjs-2";
+import * as Routers from "@utils/Routes";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -26,6 +27,12 @@ import DashboardPage from "./dashboard/DashboardPage";
 import HotelManagement from "./hotelHost/HotelManagement";
 import ListFeedbackAdminPage from "./feedback/ListFeedbackAdminPage";
 import DetailHotelHostAdmin from "./hotelHost/DetailHotelHostAdmin";
+import { useAppSelector } from "@redux/store";
+import { disconnectSocket } from "@redux/socket/socketSlice";
+import { useDispatch } from "react-redux";
+import { useNavigate } from "react-router-dom";
+import AuthActions from "@redux/auth/actions";
+import { clearToken } from "@utils/handleToken";
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -40,6 +47,10 @@ ChartJS.register(
 );
 
 function AdminDashboard() {
+  const Auth = useAppSelector((state) => state.Auth.Auth);
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const [isClient, setIsClient] = useState(false);
   const [activeTab, setActiveTab] = useState("dashboard");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -112,6 +123,16 @@ function AdminDashboard() {
         return <i className="bi bi-bell-fill notification-icon"></i>;
     }
   };
+
+  // Đảm bảo component đã mount trên client
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  // Nếu chưa mount trên client, return loading
+  if (!isClient) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <>
@@ -282,12 +303,15 @@ function AdminDashboard() {
                   onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
                 >
                   <img
-                    src="https://i.pinimg.com/736x/e7/06/6d/e7066d76a429f504ccf2086d09cf8da1.jpg"
+                    src={
+                      Auth?.image?.url ||
+                      "https://i.pinimg.com/736x/e7/06/6d/e7066d76a429f504ccf2086d09cf8da1.jpg"
+                    }
                     alt="Admin"
                     className="user-avatar"
                   />
                   <div className="user-info">
-                    <span className="user-name">Admin System</span>
+                    <span className="user-name">{Auth?.name || "Admin"}</span>
                   </div>
                   <i
                     className={`bi bi-chevron-${
@@ -301,7 +325,22 @@ function AdminDashboard() {
                     <ul>
                       <li className="divider"></li>
                       <li>
-                        <a href="#" className="logout">
+                        <a
+                          onClick={() => {
+                            dispatch(disconnectSocket());
+                            navigate(Routers.LoginPage, {
+                              state: {
+                                message: "Logout account successfully !!!",
+                              },
+                            });
+                            dispatch({
+                              type: AuthActions.LOGOUT,
+                            });
+                            clearToken();
+                          }}
+                          className="logout"
+                          style={{ cursor: "pointer" }}
+                        >
                           <i className="bi bi-box-arrow-right"></i>
                           <span>Đăng xuất</span>
                         </a>
@@ -316,10 +355,14 @@ function AdminDashboard() {
           {/* Page Content */}
           <div className="page-content">
             {/* Dashboard */}
-            {activeTab === "dashboard" && <DashboardPage setActiveTab={setActiveTab} />}
+            {activeTab === "dashboard" && (
+              <DashboardPage setActiveTab={setActiveTab} />
+            )}
 
             {/* Hotel Hosts Management */}
-            {activeTab === "hotel-hosts" && <HotelManagement setActiveTab={setActiveTab}/>}
+            {activeTab === "hotel-hosts" && (
+              <HotelManagement setActiveTab={setActiveTab} />
+            )}
 
             {/* Customers Management */}
             {activeTab === "customers" && <ListCustomerAdmin />}
@@ -333,7 +376,9 @@ function AdminDashboard() {
             {/* Reports */}
             {activeTab === "reports" && <ReportedFeedbackAdmin />}
 
-            {activeTab === "hotel_information" && <DetailHotelHostAdmin setActiveTab={setActiveTab}/>}
+            {activeTab === "hotel_information" && (
+              <DetailHotelHostAdmin setActiveTab={setActiveTab} />
+            )}
           </div>
         </div>
       </div>
