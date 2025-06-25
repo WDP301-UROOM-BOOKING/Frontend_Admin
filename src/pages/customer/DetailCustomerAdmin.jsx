@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Container,
   Row,
@@ -13,7 +13,7 @@ import { Calendar, Lock, Unlock } from "lucide-react";
 import "bootstrap/dist/css/bootstrap.min.css";
 import ConfirmationModal from "@components/ConfirmationModal";
 
-export default function CustomerDetail({ show, handleClose }) {
+export default function CustomerDetail({ show, handleClose, customer, onLockChange }) {
   // State to control the avatar modal
   const [showAvatarModal, setShowAvatarModal] = useState(false);
 
@@ -21,13 +21,41 @@ export default function CustomerDetail({ show, handleClose }) {
   const handleOpenModal = () => setShowAvatarModal(true);
   const handleCloseModal = () => setShowAvatarModal(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [showAcceptModal, setShowAcceptModal] = useState(false)
-  const handleAccept = () => {
-    console.log("Item accepted!")
-  }
-  const handleDelete = () => {
-    console.log("Item deleted!")
-  }
+  const [showAcceptModal, setShowAcceptModal] = useState(false);
+
+  // Hàm lock
+  const handleLockCustomer = async () => {
+    if (!customer) return;
+    const token = localStorage.getItem("token");
+    await fetch(`http://localhost:5000/api/auth/lock-customer/${customer._id}`, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
+    setShowDeleteModal(false);
+    if (onLockChange) onLockChange(customer._id, true);
+    handleClose();
+  };
+  // Hàm unlock
+  const handleUnlockCustomer = async () => {
+    if (!customer) return;
+    const token = localStorage.getItem("token");
+    await fetch(`http://localhost:5000/api/auth/unlock-customer/${customer._id}`, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
+    setShowAcceptModal(false);
+    if (onLockChange) onLockChange(customer._id, false);
+    handleClose();
+  };
+
+  if (!customer) return null;
+
   return (
     <Modal show={show} onHide={handleClose} size="xl">
       <Container className="py-4">
@@ -35,29 +63,28 @@ export default function CustomerDetail({ show, handleClose }) {
           <div className="d-flex justify-content-between align-items-center mb-2">
             <h2 className="text-secondary">View Customer Information</h2>
             <div className="d-flex gap-2">
-              <Button
-                variant="outline-danger"
-                className="d-flex align-items-center gap-2"
-                style={{ width: "100px" }}
-                onClick={()=>{
-                  setShowDeleteModal(true)
-                  
-                }}
-              >
-                <Lock size={16} />
-                Lock
-              </Button>
-              {/* <Button
-                variant="outline-success"
-                className="d-flex align-items-center gap-2"
-                style={{ width: "100px" }}
-                onClick={()=>{
-                  setShowAcceptModal(true)
-                }}
-              >
-                <Unlock size={16} />
-                Unlock
-              </Button> */}
+              {!customer.isLocked && (
+                <Button
+                  variant="outline-danger"
+                  className="d-flex align-items-center gap-2"
+                  style={{ width: "100px" }}
+                  onClick={() => setShowDeleteModal(true)}
+                >
+                  <Lock size={16} />
+                  Lock
+                </Button>
+              )}
+              {customer.isLocked && (
+                <Button
+                  variant="outline-success"
+                  className="d-flex align-items-center gap-2"
+                  style={{ width: "100px" }}
+                  onClick={() => setShowAcceptModal(true)}
+                >
+                  <Unlock size={16} />
+                  Unlock
+                </Button>
+              )}
             </div>
           </div>
 
@@ -72,7 +99,7 @@ export default function CustomerDetail({ show, handleClose }) {
                       style={{ width: "200px", height: "200px" }}
                     >
                       <img
-                        src="https://i.pinimg.com/736x/8f/1c/a2/8f1ca2029e2efceebd22fa05cca423d7.jpg"
+                        src={customer?.image?.url || "https://i.pinimg.com/736x/8f/1c/a2/8f1ca2029e2efceebd22fa05cca423d7.jpg"}
                         alt="Customer avatar"
                         className="w-100 h-100 object-fit-cover"
                       />
@@ -94,7 +121,7 @@ export default function CustomerDetail({ show, handleClose }) {
                         <Form.Label>Full name</Form.Label>
                         <Form.Control
                           type="text"
-                          value="Lê Kim Hoang Nguyên"
+                          value={customer.name || ""}
                           readOnly
                           className="bg-light"
                         />
@@ -113,6 +140,7 @@ export default function CustomerDetail({ show, handleClose }) {
                             name="gender"
                             id="male"
                             value="male"
+                            checked={customer.gender === "MALE"}
                             disabled
                           />
                           <Form.Check
@@ -122,7 +150,7 @@ export default function CustomerDetail({ show, handleClose }) {
                             name="gender"
                             id="female"
                             value="female"
-                            checked={true}
+                            checked={customer.gender === "FEMALE"}
                             disabled
                           />
                         </div>
@@ -139,7 +167,7 @@ export default function CustomerDetail({ show, handleClose }) {
                     <InputGroup>
                       <Form.Control
                         type="text"
-                        value="30/06/2025"
+                        value={customer.birthDate ? new Date(customer.birthDate).toLocaleDateString() : ""}
                         readOnly
                         className="bg-light"
                       />
@@ -154,7 +182,7 @@ export default function CustomerDetail({ show, handleClose }) {
                     <Form.Label>CMND</Form.Label>
                     <Form.Control
                       type="text"
-                      value="40312120945"
+                      value={customer.cmnd || ""}
                       readOnly
                       className="bg-light"
                     />
@@ -168,7 +196,7 @@ export default function CustomerDetail({ show, handleClose }) {
                     <Form.Label>Number phone</Form.Label>
                     <Form.Control
                       type="text"
-                      value="0934726073"
+                      value={customer.phoneNumber || ""}
                       readOnly
                       className="bg-light"
                     />
@@ -179,7 +207,7 @@ export default function CustomerDetail({ show, handleClose }) {
                     <Form.Label>Email</Form.Label>
                     <Form.Control
                       type="text"
-                      value="lkhnguyen3006@gmail.com"
+                      value={customer.email || ""}
                       readOnly
                       className="bg-light"
                     />
@@ -194,7 +222,7 @@ export default function CustomerDetail({ show, handleClose }) {
                     <Form.Control
                       as="textarea"
                       rows={3}
-                      value="650/7 Trần Cao Vân"
+                      value={customer.address || ""}
                       readOnly
                       className="bg-light"
                     />
@@ -217,7 +245,7 @@ export default function CustomerDetail({ show, handleClose }) {
           </Modal.Header>
           <Modal.Body className="text-center p-4">
             <img
-              src="https://i.pinimg.com/736x/8f/1c/a2/8f1ca2029e2efceebd22fa05cca423d7.jpg"
+              src={customer?.image?.url || "https://i.pinimg.com/736x/8f/1c/a2/8f1ca2029e2efceebd22fa05cca423d7.jpg"}
               alt="Customer avatar"
               className="img-fluid"
               style={{ maxHeight: "70vh" }}
@@ -234,7 +262,7 @@ export default function CustomerDetail({ show, handleClose }) {
       <ConfirmationModal
         show={showDeleteModal}
         onHide={() => setShowDeleteModal(false)}
-        onConfirm={handleDelete}
+        onConfirm={handleLockCustomer}
         title="Confirm Lock Customer"
         message="Are you sure you want to lock this customer ?"
         confirmButtonText="Confirm"
@@ -245,7 +273,7 @@ export default function CustomerDetail({ show, handleClose }) {
       <ConfirmationModal
         show={showAcceptModal}
         onHide={() => setShowAcceptModal(false)}
-        onConfirm={handleAccept}
+        onConfirm={handleUnlockCustomer}
         title="Confirm Unlock Customer"
         message="Are you sure you want to unlock this customer ?"
         confirmButtonText="Confirm"
