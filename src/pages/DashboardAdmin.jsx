@@ -30,9 +30,13 @@ import DetailHotelHostAdmin from "./hotelHost/DetailHotelHostAdmin";
 import { useAppSelector } from "@redux/store";
 import { disconnectSocket } from "@redux/socket/socketSlice";
 import { useDispatch } from "react-redux";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import AuthActions from "@redux/auth/actions";
 import { clearToken } from "@utils/handleToken";
+import Chat from "./messenger/Chat";
+import ListPaymentCustomer from "./payment/ListPaymentCustomer";
+import ListPromotionPage from "./promotion/ListPromotionPage";
+
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -50,8 +54,14 @@ function AdminDashboard() {
   const Auth = useAppSelector((state) => state.Auth.Auth);
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [isClient, setIsClient] = useState(false);
-  const [activeTab, setActiveTab] = useState("dashboard");
+  
+  // Initialize activeTab from URL params or default to "dashboard"
+  const [activeTab, setActiveTab] = useState(() => {
+    return searchParams.get("tab") || "dashboard";
+  });
+  
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [notifications, setNotifications] = useState([
@@ -84,6 +94,16 @@ function AdminDashboard() {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const notificationRef = useRef(null);
   const userMenuRef = useRef(null);
+
+  // Update URL when activeTab changes
+  useEffect(() => {
+    setSearchParams({ tab: activeTab });
+  }, [activeTab, setSearchParams]);
+
+  // Function to handle tab change
+  const handleTabChange = (tabName) => {
+    setActiveTab(tabName);
+  };
 
   // Đóng dropdown khi click ra ngoài
   useEffect(() => {
@@ -144,12 +164,6 @@ function AdminDashboard() {
               <i className="bi bi-building"></i>
               <span className="logo-text">Admin</span>
             </div>
-            {/* <button 
-              className="sidebar-toggle" 
-              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            >
-              <i className={`bi bi-chevron-${sidebarCollapsed ? 'right' : 'left'}`}></i>
-            </button> */}
           </div>
 
           <div className="sidebar-content">
@@ -161,7 +175,7 @@ function AdminDashboard() {
                     activeTab === "dashboard" ? "active" : ""
                   }`}
                 >
-                  <a href="#" onClick={() => setActiveTab("dashboard")}>
+                  <a href="#" onClick={() => handleTabChange("dashboard")}>
                     <i className="bi bi-speedometer2"></i>
                     <span>Dashboard</span>
                   </a>
@@ -171,7 +185,7 @@ function AdminDashboard() {
                     activeTab === "hotel-hosts" ? "active" : ""
                   }`}
                 >
-                  <a href="#" onClick={() => setActiveTab("hotel-hosts")}>
+                  <a href="#" onClick={() => handleTabChange("hotel-hosts")}>
                     <i className="bi bi-building"></i>
                     <span>Quản lý Hotel Host</span>
                   </a>
@@ -181,9 +195,19 @@ function AdminDashboard() {
                     activeTab === "customers" ? "active" : ""
                   }`}
                 >
-                  <a href="#" onClick={() => setActiveTab("customers")}>
+                  <a href="#" onClick={() => handleTabChange("customers")}>
                     <i className="bi bi-people"></i>
                     <span>Quản lý Khách hàng</span>
+                  </a>
+                </li>
+                <li
+                  className={`menu-item ${
+                    activeTab === "promotions" ? "active" : ""
+                  }`}
+                >
+                  <a href="#" onClick={() => handleTabChange("promotions")}>
+                    <i className="bi bi-check-circle"></i>
+                    <span>Quản lý Khuyến mãi</span>
                   </a>
                 </li>
                 <li
@@ -191,7 +215,7 @@ function AdminDashboard() {
                     activeTab === "approvals" ? "active" : ""
                   }`}
                 >
-                  <a href="#" onClick={() => setActiveTab("approvals")}>
+                  <a href="#" onClick={() => handleTabChange("approvals")}>
                     <i className="bi bi-check-circle"></i>
                     <span>Phê duyệt Khách sạn</span>
                     <span className="badge bg-danger">58</span>
@@ -206,9 +230,19 @@ function AdminDashboard() {
                     activeTab === "payments" ? "active" : ""
                   }`}
                 >
-                  <a href="#" onClick={() => setActiveTab("payments")}>
+                  <a href="#" onClick={() => handleTabChange("payments")}>
+                    <i className="bi bi-wallet"></i>
+                    <span>Thanh toán khách sạn</span>
+                  </a>
+                </li>
+                <li
+                  className={`menu-item ${
+                    activeTab === "payments_customer" ? "active" : ""
+                  }`}
+                >
+                  <a href="#" onClick={() => handleTabChange("payments_customer")}>
                     <i className="bi bi-credit-card"></i>
-                    <span>Thanh toán</span>
+                    <span>Thanh toán khách hàng</span>
                   </a>
                 </li>
                 <li
@@ -216,10 +250,24 @@ function AdminDashboard() {
                     activeTab === "reports" ? "active" : ""
                   }`}
                 >
-                  <a href="#" onClick={() => setActiveTab("reports")}>
+                  <a href="#" onClick={() => handleTabChange("reports")}>
                     <i className="bi bi-flag"></i>
                     <span>Báo cáo vi phạm</span>
                     <span className="badge bg-warning">12</span>
+                  </a>
+                </li>
+              </ul>
+
+              <h6 className="menu-category">Liên Hệ</h6>
+              <ul className="menu-items">
+                <li
+                  className={`menu-item ${
+                    activeTab === "messenger" ? "active" : ""
+                  }`}
+                >
+                  <a href="#" onClick={() => handleTabChange("messenger")}>
+                    <i className="bi bi-chat-dots-fill"></i>
+                    <span>Liên hệ khách hàng</span>
                   </a>
                 </li>
               </ul>
@@ -356,12 +404,12 @@ function AdminDashboard() {
           <div className="page-content">
             {/* Dashboard */}
             {activeTab === "dashboard" && (
-              <DashboardPage setActiveTab={setActiveTab} />
+              <DashboardPage setActiveTab={handleTabChange} />
             )}
 
             {/* Hotel Hosts Management */}
             {activeTab === "hotel-hosts" && (
-              <HotelManagement setActiveTab={setActiveTab} />
+              <HotelManagement setActiveTab={handleTabChange} />
             )}
 
             {/* Customers Management */}
@@ -373,11 +421,20 @@ function AdminDashboard() {
             {/* Payments */}
             {activeTab === "payments" && <ListPaymentHotel />}
 
+            {/* Payments */}
+            {activeTab === "payments_customer" && <ListPaymentCustomer />}
+
+            {/* Payments */}
+            {activeTab === "promotions" && <ListPromotionPage />}
+
             {/* Reports */}
             {activeTab === "reports" && <ReportedFeedbackAdmin />}
 
+            {/* messenger */}
+            {activeTab === "messenger" && <Chat/>}
+
             {activeTab === "hotel_information" && (
-              <DetailHotelHostAdmin setActiveTab={setActiveTab} />
+              <DetailHotelHostAdmin setActiveTab={handleTabChange} />
             )}
           </div>
         </div>

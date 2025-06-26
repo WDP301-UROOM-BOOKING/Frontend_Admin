@@ -14,7 +14,7 @@ const sagaMiddleware = createSagaMiddleware()
 const persistConfig = {
   key: "root",
   storage,
-  whitelist: ["Auth", "Socket"],
+  whitelist: ["Auth", "Socket", "Message"], // Chỉ persist các reducer cần thiết
   // Bỏ transforms vì chúng ta sẽ tự handle expire
 }
 

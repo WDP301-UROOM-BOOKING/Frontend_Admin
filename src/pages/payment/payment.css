@@ -1,0 +1,399 @@
+/* Payment Customer Management Styles */
+.payment-customer-management {
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  min-height: 100vh;
+}
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 80vh;
+}
+
+.loading-text {
+  margin-top: 1rem;
+  color: #6c757d;
+  font-weight: 500;
+}
+
+/* Header Section */
+.page-header-section {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 2rem 0;
+  margin-bottom: 2rem;
+}
+
+.page-title-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.page-icon {
+  width: 60px;
+  height: 60px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+}
+
+.page-title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin: 0;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.page-subtitle {
+  margin: 0;
+  opacity: 0.9;
+  font-size: 1.1rem;
+}
+
+/* Statistics Cards */
+.stats-row {
+  margin-top: 2rem;
+}
+
+.stat-card {
+  border: none;
+  border-radius: 15px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  margin-bottom: 1rem;
+}
+
+.stat-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+}
+
+.stat-content {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.stat-icon {
+  width: 50px;
+  height: 50px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  color: white;
+}
+
+.stat-card-total .stat-icon {
+  background: linear-gradient(45deg, #6f42c1, #e83e8c);
+}
+
+.stat-card-pending .stat-icon {
+  background: linear-gradient(45deg, #ffc107, #fd7e14);
+}
+
+.stat-card-approved .stat-icon {
+  background: linear-gradient(45deg, #28a745, #20c997);
+}
+
+.stat-card-rejected .stat-icon {
+  background: linear-gradient(45deg, #dc3545, #fd7e14);
+}
+
+.stat-number {
+  font-size: 2rem;
+  font-weight: 700;
+  margin: 0;
+  color: #2c3e50;
+}
+
+.stat-label {
+  margin: 0;
+  color: #6c757d;
+  font-weight: 500;
+}
+
+/* Content Section */
+.content-section {
+  padding-bottom: 2rem;
+}
+
+.filters-card {
+  border: none;
+  border-radius: 15px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+  margin-bottom: 1.5rem;
+}
+
+.search-input .form-control {
+  border-left: none;
+  padding-left: 0;
+}
+
+.search-input .input-group-text {
+  background: white;
+  border-right: none;
+  color: #6c757d;
+}
+
+.results-info {
+  color: #6c757d;
+  font-weight: 500;
+}
+
+/* Table */
+.table-card {
+  border: none;
+  border-radius: 15px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+
+.refunds-table {
+  margin: 0;
+}
+
+.refunds-table thead th {
+  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+  border: none;
+  font-weight: 700;
+  color: #495057;
+  padding: 1.5rem 1rem;
+  text-transform: uppercase;
+  font-size: 0.85rem;
+  letter-spacing: 0.5px;
+}
+
+.refund-row {
+  transition: all 0.3s ease;
+  border: none;
+}
+
+.refund-row:hover {
+  background: linear-gradient(135deg, #f8f9ff, #fff5f5);
+  transform: translateX(5px);
+}
+
+.refund-row td {
+  padding: 1.5rem 1rem;
+  border: none;
+  border-bottom: 1px solid #f1f3f4;
+  vertical-align: middle;
+}
+
+/* Customer Info */
+.customer-info {
+  max-width: 200px;
+}
+
+.customer-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.customer-icon {
+  color: #007bff;
+}
+
+.customer-name {
+  color: #2c3e50;
+  font-size: 1rem;
+}
+
+.customer-details {
+  font-size: 0.85rem;
+}
+
+/* Hotel Info */
+.hotel-info {
+  max-width: 250px;
+}
+
+.hotel-name {
+  color: #2c3e50;
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.booking-details {
+  font-size: 0.85rem;
+}
+
+/* Amount Info */
+.amount-info {
+  text-align: right;
+}
+
+.refund-amount {
+  color: #28a745;
+  font-size: 1.2rem;
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+.original-amount {
+  font-size: 0.85rem;
+}
+
+/* Date Info */
+.date-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.date-icon {
+  color: #6c757d;
+}
+
+/* Status Badge */
+.status-badge {
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: fit-content;
+}
+
+/* Action Buttons */
+.action-buttons {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+.action-buttons .btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  border-width: 2px;
+}
+
+.action-buttons .btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+/* Empty State */
+.empty-state {
+  text-align: center;
+  padding: 4rem 2rem;
+}
+
+.empty-icon {
+  font-size: 4rem;
+  color: #dee2e6;
+  margin-bottom: 1rem;
+}
+
+/* Pagination */
+.pagination-wrapper {
+  display: flex;
+  justify-content: center;
+  margin-top: 2rem;
+}
+
+.pagination-container {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: white;
+  padding: 1rem;
+  border-radius: 15px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+}
+
+.pagination-numbers {
+  display: flex;
+  gap: 0.25rem;
+}
+
+/* Modal Styles */
+.detail-card {
+  border: 1px solid #e9ecef;
+  border-radius: 10px;
+  margin-bottom: 1rem;
+}
+
+.detail-card .card-header {
+  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+  border-bottom: 1px solid #dee2e6;
+  font-weight: 600;
+}
+
+.reason-text {
+  background: #f8f9fa;
+  padding: 1rem;
+  border-radius: 8px;
+  border-left: 4px solid #007bff;
+  margin-top: 0.5rem;
+}
+
+.refund-summary {
+  background: #f8f9fa;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+.action-form .form-label {
+  font-weight: 600;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .page-title {
+    font-size: 2rem;
+  }
+  
+  .stats-row {
+    margin-top: 1rem;
+  }
+  
+  .customer-info,
+  .hotel-info {
+    max-width: none;
+  }
+  
+  .action-buttons {
+    flex-wrap: wrap;
+    gap: 0.25rem;
+  }
+  
+  .action-buttons .btn {
+    width: 35px;
+    height: 35px;
+  }
+}
+
+@media (max-width: 576px) {
+  .page-header-section {
+    padding: 1rem 0;
+  }
+  
+  .page-title-wrapper {
+    flex-direction: column;
+    text-align: center;
+    gap: 0.5rem;
+  }
+  
+  .filters-card .row {
+    gap: 1rem;
+  }
+}
