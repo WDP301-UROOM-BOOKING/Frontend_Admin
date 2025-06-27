@@ -84,7 +84,7 @@ const DetailHotelHostAdmin = () => {
     0
   );
 
-  // Mock data - in a real app, this would come from an API
+
   useEffect(() => {
     // Simulate API call
     const fetchPayments = () => {

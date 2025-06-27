@@ -1,0 +1,7 @@
+const FeedbackActions = {
+    UPDATE_FEEDBACK_STATUS: "UPDATE_FEEDBACK_STATUS",
+    UPDATE_FEEDBACK_STATUS_SUCCESS: "UPDATE_FEEDBACK_STATUS_SUCCESS",
+    
+};
+
+export default FeedbackActions;

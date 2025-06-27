@@ -1,223 +1,209 @@
-import { useState } from "react";
+"use client";
+
+import { useEffect, useState } from "react";
 import DetailReportedAdmin from "./DetailReportedAdmin";
+import { useAppDispatch } from "../../redux/store";
+import ReportFeedbackActions from "../../redux/reportedFeedback/actions";
 
 function ReportedFeedbackAdmin() {
+  const dispatch = useAppDispatch();
   const [showModal, setShowModal] = useState(false);
-  // Dữ liệu báo cáo feedback gần đây
-  const recentReports = [
-    {
-      id: "1",
-      customerName: "Nguyễn Văn X",
-      hotelName: "Luxury Palace Hotel",
-      reportType: "Vi phạm chính sách",
-      submittedDate: "15/06/2025",
-      status: "Chưa xử lý",
-      severity: "Cao",
-    },
-    {
-      id: "2",
-      customerName: "Trần Thị Y",
-      hotelName: "Seaside Resort & Spa",
-      reportType: "Chất lượng dịch vụ",
-      submittedDate: "16/06/2025",
-      status: "Đang xử lý",
-      severity: "Trung bình",
-    },
-    {
-      id: "2",
-      customerName: "Lê Văn Z",
-      hotelName: "City Center Hotel",
-      reportType: "Sai thông tin",
-      submittedDate: "16/06/2025",
-      status: "Chưa xử lý",
-      severity: "Thấp",
-    },
-    {
-      id: "2",
-      customerName: "Phạm Thị K",
-      hotelName: "Mountain View Lodge",
-      reportType: "Vi phạm chính sách",
-      submittedDate: "17/06/2025",
-      status: "Đang xử lý",
-      severity: "Cao",
-    },
-  ];
+  const [selectedReport, setSelectedReport] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  // Lấy màu cho mức độ nghiêm trọng
-  const getSeverityColor = (severity) => {
-    switch (severity) {
-      case "Cao":
-        return "danger";
-      case "Trung bình":
-        return "warning";
-      case "Thấp":
-        return "info";
-      default:
-        return "secondary";
-    }
-  };
-  // Lấy màu cho trạng thái
+  const [reports, setReports] = useState([]); 
+
+  // Gọi API khi component mount
+  useEffect(() => {
+    setLoading(true);
+    dispatch({
+      type: ReportFeedbackActions.GET_ALL_REPORTED_FEEDBACKS,
+      payload: {
+        onSuccess: (data) => {
+          setLoading(false);
+          setReports(data);
+          console.log("Fetched reports:", data);
+        },
+        onFailed: (msg) => {
+          console.error("Lỗi lấy danh sách báo cáo:", msg);
+          setLoading(false);
+        },
+      },
+    });
+  }, [dispatch]);
+
+  // Lọc dữ liệu
+  const filteredReports = reports.filter((item) => {
+    const matchesSearch =
+      searchTerm === "" ||
+      item.feedback?.hotel?.hotelName
+        ?.toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
+      item.reports?.[0]?.reportedBy?.name
+        ?.toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
+      item.reports?.[0]?.reason
+        ?.toLowerCase()
+        .includes(searchTerm.toLowerCase());
+
+    const matchesStatus =
+      statusFilter === "" || item.reports?.[0]?.status === statusFilter;
+
+    return matchesSearch && matchesStatus;
+  });
+
+
+
   const getStatusColor = (status) => {
     switch (status) {
-      case "Đã thanh toán":
-      case "Hoạt động":
+      case "APPROVED":
         return "success";
-      case "Đang xử lý":
-      case "Đang xem xét":
-      case "Đang chờ":
+      case "PENDING":
         return "warning";
-      case "Tạm khóa":
-      case "Chưa xử lý":
+      case "REJECT":
         return "danger";
       default:
         return "secondary";
     }
   };
+
+  const getStatusText = (status) => {
+    switch (status) {
+      case "APPROVED":
+        return "Đã duyệt";
+      case "PENDING":
+        return "Chờ xử lý";
+      case "REJECT":
+        return "Từ chối";
+      default:
+        return status || "Không xác định";
+    }
+  };
+
+  const getSeverity = (count) => {
+    if (count >= 5) return { text: "Cao", color: "danger" };
+    if (count >= 3) return { text: "Trung bình", color: "warning" };
+    return { text: "Thấp", color: "info" };
+  };
+
+
+
+
+  if (loading) {
+    return (
+      <div className="reports-content">
+        <h1>Đang tải dữ liệu...</h1>
+      </div>
+    );
+  }
+
+
 
   return (
     <div className="reports-content">
+      {/* Header */}
       <div className="page-header">
         <h1>Báo cáo vi phạm</h1>
+        <p className="text-muted">Quản lý các báo cáo vi phạm từ người dùng</p>
         <div className="page-actions">
-          <button className="btn btn-outline-primary">
-            <i className="bi bi-filter"></i> Lọc
-          </button>
-          <button className="btn btn-primary">
-            <i className="bi bi-download"></i> Xuất báo cáo
-          </button>
+         
+        
         </div>
       </div>
 
-      <div className="content-container">
-        <div className="filters-bar">
-          <div className="search-box">
-            <i className="bi bi-search"></i>
-            <input type="text" placeholder="Tìm kiếm báo cáo..." />
-          </div>
-          <div className="filters">
-            <select className="form-select">
-              <option>Tất cả trạng thái</option>
-              <option>Chưa xử lý</option>
-              <option>Đang xử lý</option>
-              <option>Đã xử lý</option>
-            </select>
-            <select className="form-select">
-              <option>Tất cả mức độ</option>
-              <option>Cao</option>
-              <option>Trung bình</option>
-              <option>Thấp</option>
-            </select>
-            <select className="form-select">
-              <option>Tất cả loại</option>
-              <option>Vi phạm chính sách</option>
-              <option>Chất lượng dịch vụ</option>
-              <option>Sai thông tin</option>
-            </select>
-          </div>
+      {/* Filter */}
+      <div className="filters-bar">
+        <div className="search-box">
+          <input
+            type="text"
+            placeholder="Tìm kiếm báo cáo..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
         </div>
+        <div className="filters">
+          <select
+            className="form-select"
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+          >
+            <option value="">Tất cả trạng thái</option>
+            <option value="PENDING">Chờ xử lý</option>
+            <option value="APPROVED">Đã duyệt</option>
+            <option value="REJECT">Từ chối</option>
+          </select>
+        </div>
+      </div>
 
-        <div className="table-responsive">
-          <table className="table table-hover">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Khách hàng</th>
-                <th>Khách sạn</th>
-                <th>Loại báo cáo</th>
-                <th>Ngày gửi</th>
-                <th>Mức độ</th>
-                <th>Trạng thái</th>
-                <th>Thao tác</th>
-              </tr>
-            </thead>
-            <tbody>
-              {recentReports.map((report) => (
-                <tr key={report.id}>
-                  <td>{report.id}</td>
-                  <td>{report.customerName}</td>
-                  <td>{report.hotelName}</td>
-                  <td>{report.reportType}</td>
-                  <td>{report.submittedDate}</td>
+      {/* Table */}
+      <div className="table-responsive">
+        <table className="table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Khách sạn</th>
+              <th>Người đánh giá</th>
+              <th>Nội dung</th>
+              <th>Lý do</th>
+              <th>Ngày</th>
+              <th>Trạng thái</th>
+
+            </tr>
+          </thead>
+          <tbody>
+            {filteredReports.map((item, index) => {
+              const latest = item.reports?.[0];
+            
+              return (
+                <tr key={item.feedback?._id || index}  onClick={() => {
+                  setSelectedReport(item);
+                  setShowModal(true);
+                }}
+                style={{ cursor: "pointer" }} >
+                  <td>{index + 1}</td>
+                  <td>{item.feedback?.hotel?.hotelName}</td>
+                  <td>{item.feedback?.user?.name}</td>
                   <td>
                     <span
-                      className={`badge bg-${getSeverityColor(
-                        report.severity
-                      )}`}
+                      className="text-truncate d-inline-block"
+                      style={{ maxWidth: "200px" }}
+                      title={item.feedback?.content}
                     >
-                      {report.severity}
+                      {item.feedback?.content || "N/A"}
                     </span>
+                  </td>
+                  <td>{latest?.reason}</td>
+                  <td>
+                    {new Date(latest?.createdAt).toLocaleDateString("vi-VN")}
                   </td>
                   <td>
                     <span
-                      className={`badge bg-${getStatusColor(report.status)}`}
+                      className={`badge bg-${getStatusColor(latest?.status)}`}
                     >
-                      {report.status}
+                      {getStatusText(latest?.status)}
                     </span>
                   </td>
-                  <td>
-                    <div className="action-buttons">
-                      <button
-                        className="btn btn-sm btn-primary"
-                        title="Xem chi tiết"
-                        onClick={() =>{
-                          setShowModal(true);
-                        }}
-                      >
-                        <i className="bi bi-eye"></i>
-                      </button>
-                      <button className="btn btn-sm btn-warning" title="Xử lý">
-                        <i className="bi bi-pencil"></i>
-                      </button>
-                      <button
-                        className="btn btn-sm btn-success"
-                        title="Đánh dấu đã xử lý"
-                      >
-                        <i className="bi bi-check-lg"></i>
-                      </button>
-                    </div>
-                  </td>
+                 
+                 
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        <div className="pagination-container">
-          <div className="pagination-info">Hiển thị 1-4 của 12 kết quả</div>
-          <ul className="pagination">
-            <li className="page-item disabled">
-              <a className="page-link" href="#">
-                Trước
-              </a>
-            </li>
-            <li className="page-item active">
-              <a className="page-link" href="#">
-                1
-              </a>
-            </li>
-            <li className="page-item">
-              <a className="page-link" href="#">
-                2
-              </a>
-            </li>
-            <li className="page-item">
-              <a className="page-link" href="#">
-                3
-              </a>
-            </li>
-            <li className="page-item">
-              <a className="page-link" href="#">
-                Sau
-              </a>
-            </li>
-          </ul>
-        </div>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
-      <DetailReportedAdmin
-        show={showModal}
-        onHide={() => setShowModal(false)}
-        handleClose={() => setShowModal(false)}
-      />
+
+      {/* Modal */}
+      {selectedReport && (
+        <DetailReportedAdmin
+          show={showModal}
+          onHide={() => setShowModal(false)}
+          handleClose={() => setShowModal(false)}
+          feedbackId={selectedReport.feedback?._id}
+          feedbackData={selectedReport}
+        />
+      )}
     </div>
   );
 }
