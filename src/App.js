@@ -26,7 +26,7 @@ import VerifyCodeRegisterPage from "@pages/login_register/VerifyCodeRegisterPage
 
 function App() {
 
-   useEffect(() => {
+  useEffect(() => {
     document.title = "Uroom Admin";
   }, []);
 
@@ -38,6 +38,27 @@ function App() {
     if (Auth?._id === -1) return;
     dispatch(initializeSocket());
   }, [Auth?._id]);
+
+  useEffect(() => {
+    if (!Socket) return;
+    if (Auth?._id === -1) return;
+
+    console.log("Socket initialized:", Socket.id);
+    Socket.emit("register", Auth._id);
+
+    const handleForceJoinRoom = ({ roomId, partnerId }) => {
+      Socket.emit("join-room", {
+        userId: Auth._id,
+        partnerId,
+      });
+    };
+
+    Socket.on("force-join-room", handleForceJoinRoom);
+
+    return () => {
+      Socket.off("force-join-room", handleForceJoinRoom);
+    };
+  }, [Socket, Auth?._id]);
 
   return (
     <Router>
