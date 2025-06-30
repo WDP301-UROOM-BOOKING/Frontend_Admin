@@ -121,8 +121,12 @@
   background: linear-gradient(45deg, #ffc107, #fd7e14);
 }
 
+.stat-card-inactive .stat-icon {
+  background: linear-gradient(45deg, #6c757d, #5a6268);
+}
+
 .stat-card-expired .stat-icon {
-  background: linear-gradient(45deg, #dc3545, #fd7e14);
+  background: linear-gradient(45deg, #dc3545, #c82333);
 }
 
 .stat-number {
@@ -180,7 +184,7 @@
 }
 
 .table-wrapper {
-  overflow-x: auto;
+  overflow-x: visible;
 }
 
 .promotions-table {
@@ -377,7 +381,41 @@
   font-size: 0.8rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
 }
+
+.status-badge:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Specific status badge styles */
+.status-active {
+  background: linear-gradient(45deg, #28a745, #20c997) !important;
+  color: white !important;
+  border: none !important;
+}
+
+.status-inactive {
+  background: linear-gradient(45deg, #dc3545, #c82333) !important;
+  color: white !important;
+  border: none !important;
+}
+
+.status-expired {
+  background: linear-gradient(45deg, #6c757d, #5a6268) !important;
+  color: white !important;
+  border: none !important;
+}
+
+.status-upcoming {
+  background: linear-gradient(45deg, #ffc107, #fd7e14) !important;
+  color: #212529 !important;
+  border: none !important;
+}
+
+
 
 /* Action Buttons */
 .action-buttons {
@@ -453,32 +491,70 @@
 
 /* Pagination */
 .pagination-wrapper {
-  display: flex;
-  justify-content: center;
   margin-top: 2rem;
-}
-
-.pagination-container {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+  padding: 1.5rem;
   background: white;
-  padding: 1rem;
   border-radius: 15px;
   box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
 }
 
-.pagination-nav,
-.pagination-number {
-  border-radius: 10px;
-  font-weight: 600;
-  min-width: 40px;
-  height: 40px;
+.pagination-info {
+  color: #6c757d;
+  font-size: 0.9rem;
+  font-weight: 500;
 }
 
-.pagination-numbers {
-  display: flex;
-  gap: 0.25rem;
+.pagination .page-link {
+  border: 1px solid #dee2e6;
+  color: #495057;
+  padding: 0.5rem 0.75rem;
+  margin: 0 2px;
+  border-radius: 6px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.pagination .page-link:hover {
+  background-color: #e9ecef;
+  border-color: #adb5bd;
+  color: #495057;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.pagination .page-item.active .page-link {
+  background-color: #007bff;
+  border-color: #007bff;
+  color: white;
+  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
+}
+
+.pagination .page-item.disabled .page-link {
+  color: #6c757d;
+  background-color: #fff;
+  border-color: #dee2e6;
+  cursor: not-allowed;
+}
+
+/* Sortable Headers */
+.promotions-table thead th[style*="cursor: pointer"] {
+  user-select: none;
+  transition: all 0.2s ease;
+}
+
+.promotions-table thead th[style*="cursor: pointer"]:hover {
+  background: linear-gradient(135deg, #e9ecef, #dee2e6);
+  color: #007bff;
+}
+
+/* Loading State */
+.loading-state {
+  padding: 3rem 0;
+}
+
+.loading-state .spinner-border {
+  width: 3rem;
+  height: 3rem;
 }
 
 /* Delete Modal */
