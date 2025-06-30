@@ -31,6 +31,7 @@ const initialState = {
   stats: {
     total: 0,
     active: 0,
+    upcoming: 0,
     inactive: 0,
     expired: 0
   }

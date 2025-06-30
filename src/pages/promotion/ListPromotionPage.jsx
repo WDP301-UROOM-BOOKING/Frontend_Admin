@@ -136,10 +136,6 @@ const ListPromotionPage = () => {
     dispatch(setPromotionPagination({ currentPage: page }));
   };
 
-  const handleLimitChange = (limit) => {
-    dispatch(setPromotionPagination({ limit, currentPage: 1 }));
-  };
-
   const resetFilters = () => {
     dispatch(resetPromotionFilters());
   };
@@ -312,15 +308,23 @@ const ListPromotionPage = () => {
     const startDate = new Date(promotion.startDate);
     const endDate = new Date(promotion.endDate);
 
+    // If promotion is manually set to inactive
     if (!promotion.isActive) {
-      return <Badge bg="danger" className="status-badge">Inactive</Badge>;
-    } else if (now < startDate) {
-      return <Badge bg="warning" className="status-badge">Upcoming</Badge>;
-    } else if (now > endDate) {
-      return <Badge bg="secondary" className="status-badge">Expired</Badge>;
-    } else {
-      return <Badge bg="success" className="status-badge">Active</Badge>;
+      return <Badge bg="danger" className="status-badge status-inactive">Inactive</Badge>;
     }
+
+    // If promotion has expired
+    if (now > endDate) {
+      return <Badge bg="secondary" className="status-badge status-expired">Expired</Badge>;
+    }
+
+    // If promotion hasn't started yet
+    if (now < startDate) {
+      return <Badge bg="warning" className="status-badge status-upcoming">Upcoming</Badge>;
+    }
+
+    // If promotion is currently active
+    return <Badge bg="success" className="status-badge status-active">Active</Badge>;
   };
 
   const getProgressColor = (percentage) => {
@@ -398,7 +402,7 @@ const ListPromotionPage = () => {
 
           {/* Statistics Cards */}
           <Row className="stats-row">
-            <Col md={3} sm={6}>
+            <Col lg={2} md={4} sm={6} className="mb-3">
               <Card className="stat-card stat-card-total">
                 <Card.Body>
                   <div className="stat-content">
@@ -407,13 +411,13 @@ const ListPromotionPage = () => {
                     </div>
                     <div className="stat-info">
                       <h3 className="stat-number">{stats.total}</h3>
-                      <p className="stat-label">Total Promotions</p>
+                      <p className="stat-label">Total</p>
                     </div>
                   </div>
                 </Card.Body>
               </Card>
             </Col>
-            <Col md={3} sm={6}>
+            <Col lg={3} md={4} sm={6} className="mb-3">
               <Card className="stat-card stat-card-active">
                 <Card.Body>
                   <div className="stat-content">
@@ -422,18 +426,33 @@ const ListPromotionPage = () => {
                     </div>
                     <div className="stat-info">
                       <h3 className="stat-number">{stats.active}</h3>
-                      <p className="stat-label">Active Now</p>
+                      <p className="stat-label">Active</p>
                     </div>
                   </div>
                 </Card.Body>
               </Card>
             </Col>
-            <Col md={3} sm={6}>
+            <Col lg={3} md={4} sm={6} className="mb-3">
               <Card className="stat-card stat-card-upcoming">
                 <Card.Body>
                   <div className="stat-content">
                     <div className="stat-icon">
                       <FaCalendar />
+                    </div>
+                    <div className="stat-info">
+                      <h3 className="stat-number">{(stats.comingSoon || 0) + (stats.upcoming || 0)}</h3>
+                      <p className="stat-label">Upcoming</p>
+                    </div>
+                  </div>
+                </Card.Body>
+              </Card>
+            </Col>
+            <Col lg={2} md={4} sm={6} className="mb-3">
+              <Card className="stat-card stat-card-inactive">
+                <Card.Body>
+                  <div className="stat-content">
+                    <div className="stat-icon">
+                      <FaToggleOff />
                     </div>
                     <div className="stat-info">
                       <h3 className="stat-number">{stats.inactive}</h3>
@@ -443,7 +462,7 @@ const ListPromotionPage = () => {
                 </Card.Body>
               </Card>
             </Col>
-            <Col md={3} sm={6}>
+            <Col lg={2} md={4} sm={6} className="mb-3">
               <Card className="stat-card stat-card-expired">
                 <Card.Body>
                   <div className="stat-content">
@@ -489,23 +508,12 @@ const ListPromotionPage = () => {
                 >
                   <option value="all">All Status</option>
                   <option value="active">Active</option>
+                  <option value="upcoming">Upcoming</option>
                   <option value="inactive">Inactive</option>
                   <option value="expired">Expired</option>
                 </Form.Select>
               </Col>
-              <Col lg={2} md={3} className="mb-3 mb-lg-0">
-                <Form.Select
-                  value={pagination.limit}
-                  onChange={(e) => handleLimitChange(parseInt(e.target.value))}
-                  className="filter-select"
-                >
-                  <option value={5}>5 per page</option>
-                  <option value={10}>10 per page</option>
-                  <option value={20}>20 per page</option>
-                  <option value={50}>50 per page</option>
-                </Form.Select>
-              </Col>
-              <Col lg={4} md={12} className="text-lg-end">
+              <Col lg={6} md={9} className="text-lg-end">
                 <div className="results-info">
                   Showing <strong>{promotions.length}</strong> of <strong>{pagination.totalPromotions}</strong> promotions
                   {filters.search && (
@@ -749,23 +757,17 @@ const ListPromotionPage = () => {
         </Card>
 
         {/* Pagination */}
-        {pagination.totalPages > 1 && (
+        {pagination.totalPromotions > 0 && (
           <div className="pagination-wrapper">
             <Row className="align-items-center">
-              <Col md={6}>
-                <div className="pagination-info">
-                  Showing page {pagination.currentPage} of {pagination.totalPages}
-                  ({pagination.totalPromotions} total promotions)
-                </div>
-              </Col>
-              <Col md={6}>
-                <Pagination className="justify-content-end mb-0">
+              <Col md={12}>
+                <Pagination className="justify-content-center mb-0">
                   <Pagination.First
-                    disabled={!pagination.hasPrevPage}
+                    disabled={!pagination.hasPrevPage || pagination.totalPages <= 1}
                     onClick={() => handlePageChange(1)}
                   />
                   <Pagination.Prev
-                    disabled={!pagination.hasPrevPage}
+                    disabled={!pagination.hasPrevPage || pagination.totalPages <= 1}
                     onClick={() => handlePageChange(pagination.currentPage - 1)}
                   />
 
@@ -787,6 +789,7 @@ const ListPromotionPage = () => {
                         key={pageNum}
                         active={pageNum === pagination.currentPage}
                         onClick={() => handlePageChange(pageNum)}
+                        disabled={pagination.totalPages <= 1}
                       >
                         {pageNum}
                       </Pagination.Item>
@@ -794,11 +797,11 @@ const ListPromotionPage = () => {
                   })}
 
                   <Pagination.Next
-                    disabled={!pagination.hasNextPage}
+                    disabled={!pagination.hasNextPage || pagination.totalPages <= 1}
                     onClick={() => handlePageChange(pagination.currentPage + 1)}
                   />
                   <Pagination.Last
-                    disabled={!pagination.hasNextPage}
+                    disabled={!pagination.hasNextPage || pagination.totalPages <= 1}
                     onClick={() => handlePageChange(pagination.totalPages)}
                   />
                 </Pagination>

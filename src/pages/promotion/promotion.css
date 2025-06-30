@@ -121,8 +121,12 @@
   background: linear-gradient(45deg, #ffc107, #fd7e14);
 }
 
+.stat-card-inactive .stat-icon {
+  background: linear-gradient(45deg, #6c757d, #5a6268);
+}
+
 .stat-card-expired .stat-icon {
-  background: linear-gradient(45deg, #dc3545, #fd7e14);
+  background: linear-gradient(45deg, #dc3545, #c82333);
 }
 
 .stat-number {
@@ -180,7 +184,7 @@
 }
 
 .table-wrapper {
-  overflow-x: auto;
+  overflow-x: visible;
 }
 
 .promotions-table {
@@ -377,7 +381,41 @@
   font-size: 0.8rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
 }
+
+.status-badge:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Specific status badge styles */
+.status-active {
+  background: linear-gradient(45deg, #28a745, #20c997) !important;
+  color: white !important;
+  border: none !important;
+}
+
+.status-inactive {
+  background: linear-gradient(45deg, #dc3545, #c82333) !important;
+  color: white !important;
+  border: none !important;
+}
+
+.status-expired {
+  background: linear-gradient(45deg, #6c757d, #5a6268) !important;
+  color: white !important;
+  border: none !important;
+}
+
+.status-upcoming {
+  background: linear-gradient(45deg, #ffc107, #fd7e14) !important;
+  color: #212529 !important;
+  border: none !important;
+}
+
+
 
 /* Action Buttons */
 .action-buttons {
