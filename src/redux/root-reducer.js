@@ -4,12 +4,15 @@ import SocketReducer from './socket/socketSlice';
 import FeedbackReducer from './feedback/reducer';
 import ReportedFeedbackReducer from "./reportedFeedback/reducer";
 import messageReducer from './message/reducer';
+import PromotionReducer from './promotion/reducer';
+
 const rootReducer = combineReducers({
     Auth: AuthReducer,
     Socket: SocketReducer,
     Feedback:FeedbackReducer,
     ReportedFeedback: ReportedFeedbackReducer,
     Message: messageReducer,
+    Promotion: PromotionReducer,
 });
 
 export default rootReducer;

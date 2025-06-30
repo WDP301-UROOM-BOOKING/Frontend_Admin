@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import {
   Container,
   Row,
@@ -13,6 +14,7 @@ import {
   Alert,
   Spinner,
   Dropdown,
+  Pagination,
 } from "react-bootstrap";
 import {
   FaPlus,
@@ -29,107 +31,117 @@ import {
   FaGift,
   FaTags,
   FaChartLine,
+  FaSort,
+  FaSortUp,
+  FaSortDown,
 } from "react-icons/fa";
 import DetailPromotionPage from "./DetailPromotionPage";
+import {
+  fetchAllPromotions,
+  createPromotion,
+  updatePromotion,
+  deletePromotion,
+  togglePromotionStatus,
+  clearPromotionError,
+  setPromotionFilters,
+  setPromotionPagination,
+  resetPromotionFilters,
+} from "../../redux/promotion/actions";
 import "./promotion.css";
 
 const ListPromotionPage = () => {
-  const [promotions, setPromotions] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filterStatus, setFilterStatus] = useState("all");
-  const [filterType, setFilterType] = useState("all");
+  const dispatch = useDispatch();
+
+  // Redux state
+  const {
+    promotions,
+    loading,
+    creating,
+    updating,
+    deleting,
+    error,
+    pagination,
+    filters,
+    stats
+  } = useSelector((state) => state.Promotion);
+
+  // Local state
   const [showModal, setShowModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedPromotion, setSelectedPromotion] = useState(null);
   const [modalType, setModalType] = useState("add");
   const [deleteConfirm, setDeleteConfirm] = useState({ show: false, id: null });
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(8);
+  const [alert, setAlert] = useState({ show: false, type: "", message: "" });
 
-  // Sample data with more variety
-  const samplePromotions = [
-    {
-      _id: "1",
-      code: "SUMMER2024",
-      name: "Summer Sale 2024",
-      description: "Get 20% off on all bookings during summer season. Perfect for vacation planning!",
-      discountType: "PERCENTAGE",
-      discountValue: 20,
-      maxDiscountAmount: 100,
-      minOrderAmount: 200,
-      startDate: "2025-06-01",
-      endDate: "2025-08-31",
-      usageLimit: 1000,
-      usedCount: 245,
-      isActive: true,
-      createdAt: "2024-05-15",
-    },
-    {
-      _id: "2",
-      code: "WELCOME50",
-      name: "Welcome Discount",
-      description: "Fixed $50 discount for new customers on their first booking",
-      discountType: "FIXED_AMOUNT",
-      discountValue: 50,
-      maxDiscountAmount: null,
-      minOrderAmount: 150,
-      startDate: "2025-01-01",
-      endDate: "2025-12-31",
-      usageLimit: null,
-      usedCount: 1250,
-      isActive: true,
-      createdAt: "2024-01-01",
-    },
-    {
-      _id: "3",
-      code: "FLASH30",
-      name: "Flash Sale 30%",
-      description: "Limited time flash sale - 30% off all premium rooms",
-      discountType: "PERCENTAGE",
-      discountValue: 30,
-      maxDiscountAmount: 200,
-      minOrderAmount: 300,
-      startDate: "2025-03-01",
-      endDate: "2026-03-15",
-      usageLimit: 500,
-      usedCount: 480,
-      isActive: false,
-      createdAt: "2024-02-28",
-    },
-    {
-      _id: "4",
-      code: "EARLY2025",
-      name: "Early Bird 2025",
-      description: "Book early for 2025 and save big on your future stays",
-      discountType: "PERCENTAGE",
-      discountValue: 15,
-      maxDiscountAmount: 150,
-      minOrderAmount: 400,
-      startDate: "2025-01-01",
-      endDate: "2025-03-31",
-      usageLimit: 2000,
-      usedCount: 0,
-      isActive: true,
-      createdAt: "2024-12-01",
-    },
-  ];
+  const fetchPromotions = useCallback(() => {
+    const params = {
+      page: pagination.currentPage,
+      limit: pagination.limit,
+      search: filters.search,
+      status: filters.status,
+      sortBy: filters.sortBy,
+      sortOrder: filters.sortOrder
+    };
+
+    dispatch(fetchAllPromotions({
+      params,
+      onSuccess: (data) => {
+        console.log("✅ Promotions fetched successfully:", data);
+      },
+      onFailed: (error) => {
+        console.error("❌ Failed to fetch promotions:", error);
+      },
+      onError: (error) => {
+        console.error("❌ Server error:", error);
+      }
+    }));
+  }, [dispatch, pagination.currentPage, pagination.limit, filters.search, filters.status, filters.sortBy, filters.sortOrder]);
 
   useEffect(() => {
     fetchPromotions();
-  }, []);
+  }, [fetchPromotions]);
 
-  const fetchPromotions = async () => {
-    setLoading(true);
-    try {
+  useEffect(() => {
+    if (error) {
+      setAlert({
+        show: true,
+        type: "danger",
+        message: error
+      });
+      // Clear error after showing
       setTimeout(() => {
-        setPromotions(samplePromotions);
-        setLoading(false);
-      }, 1000);
-    } catch (error) {
-      console.error("Error fetching promotions:", error);
-      setLoading(false);
+        dispatch(clearPromotionError());
+        setAlert({ show: false, type: "", message: "" });
+      }, 5000);
     }
+  }, [error, dispatch]);
+
+  // Filter and pagination handlers
+  const handleSearchChange = (value) => {
+    dispatch(setPromotionFilters({ search: value }));
+    dispatch(setPromotionPagination({ currentPage: 1 }));
+  };
+
+  const handleStatusFilter = (status) => {
+    dispatch(setPromotionFilters({ status }));
+    dispatch(setPromotionPagination({ currentPage: 1 }));
+  };
+
+  const handleSort = (sortBy) => {
+    const newSortOrder = filters.sortBy === sortBy && filters.sortOrder === 'asc' ? 'desc' : 'asc';
+    dispatch(setPromotionFilters({ sortBy, sortOrder: newSortOrder }));
+  };
+
+  const handlePageChange = (page) => {
+    dispatch(setPromotionPagination({ currentPage: page }));
+  };
+
+  const handleLimitChange = (limit) => {
+    dispatch(setPromotionPagination({ limit, currentPage: 1 }));
+  };
+
+  const resetFilters = () => {
+    dispatch(resetPromotionFilters());
   };
 
   const handleAdd = () => {
@@ -153,59 +165,132 @@ const ListPromotionPage = () => {
     setDeleteConfirm({ show: true, id });
   };
 
-  const confirmDelete = async () => {
-    try {
-      setPromotions(promotions.filter(p => p._id !== deleteConfirm.id));
-      setDeleteConfirm({ show: false, id: null });
-    } catch (error) {
-      console.error("Error deleting promotion:", error);
-    }
+  const confirmDelete = () => {
+    dispatch(deletePromotion({
+      id: deleteConfirm.id,
+      onSuccess: () => {
+        setAlert({
+          show: true,
+          type: "success",
+          message: "Promotion deleted successfully!"
+        });
+        setDeleteConfirm({ show: false, id: null });
+        setTimeout(() => setAlert({ show: false, type: "", message: "" }), 3000);
+      },
+      onFailed: (error) => {
+        setAlert({
+          show: true,
+          type: "danger",
+          message: error
+        });
+        setTimeout(() => setAlert({ show: false, type: "", message: "" }), 5000);
+      },
+      onError: (error) => {
+        setAlert({
+          show: true,
+          type: "danger",
+          message: "Server error occurred while deleting promotion"
+        });
+        setTimeout(() => setAlert({ show: false, type: "", message: "" }), 5000);
+      }
+    }));
   };
 
-  const handleToggleStatus = async (id, currentStatus) => {
-    try {
-      setPromotions(promotions.map(p => 
-        p._id === id ? { ...p, isActive: !currentStatus } : p
-      ));
-    } catch (error) {
-      console.error("Error updating promotion status:", error);
-    }
+  const handleToggleStatus = (id, currentStatus) => {
+    dispatch(togglePromotionStatus({
+      id,
+      status: !currentStatus,
+      onSuccess: () => {
+        setAlert({
+          show: true,
+          type: "success",
+          message: `Promotion ${!currentStatus ? 'activated' : 'deactivated'} successfully!`
+        });
+        setTimeout(() => setAlert({ show: false, type: "", message: "" }), 3000);
+      },
+      onFailed: (error) => {
+        setAlert({
+          show: true,
+          type: "danger",
+          message: error
+        });
+        setTimeout(() => setAlert({ show: false, type: "", message: "" }), 5000);
+      },
+      onError: (error) => {
+        setAlert({
+          show: true,
+          type: "danger",
+          message: "Server error occurred while updating promotion status"
+        });
+        setTimeout(() => setAlert({ show: false, type: "", message: "" }), 5000);
+      }
+    }));
   };
 
   const handleSave = (promotionData) => {
     if (modalType === "add") {
-      const newPromotion = {
-        ...promotionData,
-        _id: Date.now().toString(),
-        usedCount: 0,
-        createdAt: new Date().toISOString(),
-      };
-      setPromotions([newPromotion, ...promotions]);
+      dispatch(createPromotion({
+        data: promotionData,
+        onSuccess: () => {
+          setAlert({
+            show: true,
+            type: "success",
+            message: "Promotion created successfully!"
+          });
+          setShowModal(false);
+          setTimeout(() => setAlert({ show: false, type: "", message: "" }), 3000);
+        },
+        onFailed: (error) => {
+          setAlert({
+            show: true,
+            type: "danger",
+            message: error
+          });
+          setTimeout(() => setAlert({ show: false, type: "", message: "" }), 5000);
+        },
+        onError: (error) => {
+          setAlert({
+            show: true,
+            type: "danger",
+            message: "Server error occurred while creating promotion"
+          });
+          setTimeout(() => setAlert({ show: false, type: "", message: "" }), 5000);
+        }
+      }));
     } else {
-      setPromotions(promotions.map(p => 
-        p._id === selectedPromotion._id ? { ...p, ...promotionData } : p
-      ));
+      dispatch(updatePromotion({
+        id: selectedPromotion._id,
+        data: promotionData,
+        onSuccess: () => {
+          setAlert({
+            show: true,
+            type: "success",
+            message: "Promotion updated successfully!"
+          });
+          setShowModal(false);
+          setTimeout(() => setAlert({ show: false, type: "", message: "" }), 3000);
+        },
+        onFailed: (error) => {
+          setAlert({
+            show: true,
+            type: "danger",
+            message: error
+          });
+          setTimeout(() => setAlert({ show: false, type: "", message: "" }), 5000);
+        },
+        onError: (error) => {
+          setAlert({
+            show: true,
+            type: "danger",
+            message: "Server error occurred while updating promotion"
+          });
+          setTimeout(() => setAlert({ show: false, type: "", message: "" }), 5000);
+        }
+      }));
     }
-    setShowModal(false);
   };
 
-  // Filter and search logic
-  const filteredPromotions = promotions.filter(promotion => {
-    const matchesSearch = promotion.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         promotion.code.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = filterStatus === "all" || 
-                         (filterStatus === "active" && promotion.isActive) ||
-                         (filterStatus === "inactive" && !promotion.isActive);
-    const matchesType = filterType === "all" || promotion.discountType === filterType;
-    
-    return matchesSearch && matchesStatus && matchesType;
-  });
-
-  // Pagination
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = filteredPromotions.slice(indexOfFirstItem, indexOfLastItem);
-  const totalPages = Math.ceil(filteredPromotions.length / itemsPerPage);
+  // Utility functions
 
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -244,13 +329,7 @@ const ListPromotionPage = () => {
     return "#dc3545"; // Red
   };
 
-  // Statistics
-  const stats = {
-    total: promotions.length,
-    active: promotions.filter(p => p.isActive).length,
-    expired: promotions.filter(p => new Date(p.endDate) < new Date()).length,
-    upcoming: promotions.filter(p => new Date(p.startDate) > new Date()).length,
-  };
+
 
   if (loading) {
     return (
@@ -265,6 +344,18 @@ const ListPromotionPage = () => {
 
   return (
     <div className="promotion-management">
+      {/* Alert */}
+      {alert.show && (
+        <Alert
+          variant={alert.type}
+          dismissible
+          onClose={() => setAlert({ show: false, type: "", message: "" })}
+          className="mx-3 mt-3"
+        >
+          {alert.message}
+        </Alert>
+      )}
+
       {/* Header Section */}
       <div className="page-header-section">
         <Container fluid>
@@ -288,9 +379,19 @@ const ListPromotionPage = () => {
                 onClick={handleAdd}
                 className="btn-add-promotion"
                 size="lg"
+                disabled={creating}
               >
-                <FaPlus className="me-2" />
-                Create Promotion
+                {creating ? (
+                  <>
+                    <Spinner animation="border" size="sm" className="me-2" />
+                    Creating...
+                  </>
+                ) : (
+                  <>
+                    <FaPlus className="me-2" />
+                    Create Promotion
+                  </>
+                )}
               </Button>
             </Col>
           </Row>
@@ -335,8 +436,8 @@ const ListPromotionPage = () => {
                       <FaCalendar />
                     </div>
                     <div className="stat-info">
-                      <h3 className="stat-number">{stats.upcoming}</h3>
-                      <p className="stat-label">Upcoming</p>
+                      <h3 className="stat-number">{stats.inactive}</h3>
+                      <p className="stat-label">Inactive</p>
                     </div>
                   </div>
                 </Card.Body>
@@ -374,37 +475,49 @@ const ListPromotionPage = () => {
                   <Form.Control
                     type="text"
                     placeholder="Search promotions..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+                    value={filters.search}
+                    onChange={(e) => handleSearchChange(e.target.value)}
                     className="search-field"
                   />
                 </InputGroup>
               </Col>
               <Col lg={2} md={3} className="mb-3 mb-lg-0">
                 <Form.Select
-                  value={filterStatus}
-                  onChange={(e) => setFilterStatus(e.target.value)}
+                  value={filters.status}
+                  onChange={(e) => handleStatusFilter(e.target.value)}
                   className="filter-select"
                 >
                   <option value="all">All Status</option>
                   <option value="active">Active</option>
                   <option value="inactive">Inactive</option>
+                  <option value="expired">Expired</option>
                 </Form.Select>
               </Col>
               <Col lg={2} md={3} className="mb-3 mb-lg-0">
                 <Form.Select
-                  value={filterType}
-                  onChange={(e) => setFilterType(e.target.value)}
+                  value={pagination.limit}
+                  onChange={(e) => handleLimitChange(parseInt(e.target.value))}
                   className="filter-select"
                 >
-                  <option value="all">All Types</option>
-                  <option value="PERCENTAGE">Percentage</option>
-                  <option value="FIXED_AMOUNT">Fixed Amount</option>
+                  <option value={5}>5 per page</option>
+                  <option value={10}>10 per page</option>
+                  <option value={20}>20 per page</option>
+                  <option value={50}>50 per page</option>
                 </Form.Select>
               </Col>
               <Col lg={4} md={12} className="text-lg-end">
                 <div className="results-info">
-                  Showing <strong>{currentItems.length}</strong> of <strong>{filteredPromotions.length}</strong> promotions
+                  Showing <strong>{promotions.length}</strong> of <strong>{pagination.totalPromotions}</strong> promotions
+                  {filters.search && (
+                    <Button
+                      variant="outline-secondary"
+                      size="sm"
+                      className="ms-2"
+                      onClick={resetFilters}
+                    >
+                      Clear Filters
+                    </Button>
+                  )}
                 </div>
               </Col>
             </Row>
@@ -418,16 +531,52 @@ const ListPromotionPage = () => {
               <Table hover className="promotions-table">
                 <thead>
                   <tr>
-                    <th>Promotion</th>
+                    <th
+                      style={{ cursor: 'pointer' }}
+                      onClick={() => handleSort('name')}
+                    >
+                      Promotion
+                      {filters.sortBy === 'name' && (
+                        filters.sortOrder === 'asc' ? <FaSortUp className="ms-1" /> : <FaSortDown className="ms-1" />
+                      )}
+                      {filters.sortBy !== 'name' && <FaSort className="ms-1 text-muted" />}
+                    </th>
                     <th>Type & Discount</th>
-                    <th>Valid Period</th>
-                    <th>Usage Stats</th>
-                    <th>Status</th>
+                    <th
+                      style={{ cursor: 'pointer' }}
+                      onClick={() => handleSort('startDate')}
+                    >
+                      Valid Period
+                      {filters.sortBy === 'startDate' && (
+                        filters.sortOrder === 'asc' ? <FaSortUp className="ms-1" /> : <FaSortDown className="ms-1" />
+                      )}
+                      {filters.sortBy !== 'startDate' && <FaSort className="ms-1 text-muted" />}
+                    </th>
+                    <th
+                      style={{ cursor: 'pointer' }}
+                      onClick={() => handleSort('usedCount')}
+                    >
+                      Usage Stats
+                      {filters.sortBy === 'usedCount' && (
+                        filters.sortOrder === 'asc' ? <FaSortUp className="ms-1" /> : <FaSortDown className="ms-1" />
+                      )}
+                      {filters.sortBy !== 'usedCount' && <FaSort className="ms-1 text-muted" />}
+                    </th>
+                    <th
+                      style={{ cursor: 'pointer' }}
+                      onClick={() => handleSort('isActive')}
+                    >
+                      Status
+                      {filters.sortBy === 'isActive' && (
+                        filters.sortOrder === 'asc' ? <FaSortUp className="ms-1" /> : <FaSortDown className="ms-1" />
+                      )}
+                      {filters.sortBy !== 'isActive' && <FaSort className="ms-1 text-muted" />}
+                    </th>
                     <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {currentItems.map((promotion) => {
+                  {promotions.map((promotion) => {
                     const usagePercentage = promotion.usageLimit 
                       ? (promotion.usedCount / promotion.usageLimit) * 100 
                       : 0;
@@ -529,6 +678,7 @@ const ListPromotionPage = () => {
                               onClick={() => handleEdit(promotion)}
                               className="action-btn edit-btn"
                               title="Edit Promotion"
+                              disabled={updating}
                             >
                               <FaEdit />
                             </Button>
@@ -537,9 +687,14 @@ const ListPromotionPage = () => {
                               size="sm"
                               onClick={() => handleToggleStatus(promotion._id, promotion.isActive)}
                               className="action-btn toggle-btn"
-                              title={promotion.isActive ? "Activate" : "Deactivate"}
+                              title={promotion.isActive ? "Deactivate" : "Activate"}
+                              disabled={updating}
                             >
-                              {promotion.isActive ? <FaToggleOn /> : <FaToggleOff />}
+                              {updating ? (
+                                <Spinner animation="border" size="sm" />
+                              ) : (
+                                promotion.isActive ? <FaToggleOn /> : <FaToggleOff />
+                              )}
                             </Button>
                             <Button
                               variant="outline-danger"
@@ -547,8 +702,13 @@ const ListPromotionPage = () => {
                               onClick={() => handleDelete(promotion._id)}
                               className="action-btn delete-btn"
                               title="Delete Promotion"
+                              disabled={deleting}
                             >
-                              <FaTrash />
+                              {deleting ? (
+                                <Spinner animation="border" size="sm" />
+                              ) : (
+                                <FaTrash />
+                              )}
                             </Button>
                           </div>
                         </td>
@@ -559,18 +719,18 @@ const ListPromotionPage = () => {
               </Table>
             </div>
 
-            {currentItems.length === 0 && (
+            {promotions.length === 0 && !loading && (
               <div className="empty-state">
                 <div className="empty-icon">
                   <FaGift />
                 </div>
                 <h4 className="empty-title">No promotions found</h4>
                 <p className="empty-description">
-                  {searchTerm || filterStatus !== "all" || filterType !== "all"
+                  {filters.search || filters.status !== "all"
                     ? "Try adjusting your search criteria or filters"
                     : "Create your first promotion to get started"}
                 </p>
-                {!searchTerm && filterStatus === "all" && filterType === "all" && (
+                {!filters.search && filters.status === "all" && (
                   <Button variant="primary" onClick={handleAdd}>
                     <FaPlus className="me-2" />
                     Create First Promotion
@@ -578,44 +738,72 @@ const ListPromotionPage = () => {
                 )}
               </div>
             )}
+
+            {loading && (
+              <div className="loading-state text-center py-5">
+                <Spinner animation="border" variant="primary" />
+                <p className="mt-3">Loading promotions...</p>
+              </div>
+            )}
           </Card.Body>
         </Card>
 
         {/* Pagination */}
-        {totalPages > 1 && (
+        {pagination.totalPages > 1 && (
           <div className="pagination-wrapper">
-            <div className="pagination-container">
-              <Button
-                variant="outline-primary"
-                disabled={currentPage === 1}
-                onClick={() => setCurrentPage(currentPage - 1)}
-                className="pagination-nav"
-              >
-                Previous
-              </Button>
-              
-              <div className="pagination-numbers">
-                {Array.from({ length: totalPages }, (_, i) => (
-                  <Button
-                    key={i + 1}
-                    variant={currentPage === i + 1 ? "primary" : "outline-primary"}
-                    onClick={() => setCurrentPage(i + 1)}
-                    className="pagination-number"
-                  >
-                    {i + 1}
-                  </Button>
-                ))}
-              </div>
+            <Row className="align-items-center">
+              <Col md={6}>
+                <div className="pagination-info">
+                  Showing page {pagination.currentPage} of {pagination.totalPages}
+                  ({pagination.totalPromotions} total promotions)
+                </div>
+              </Col>
+              <Col md={6}>
+                <Pagination className="justify-content-end mb-0">
+                  <Pagination.First
+                    disabled={!pagination.hasPrevPage}
+                    onClick={() => handlePageChange(1)}
+                  />
+                  <Pagination.Prev
+                    disabled={!pagination.hasPrevPage}
+                    onClick={() => handlePageChange(pagination.currentPage - 1)}
+                  />
 
-              <Button
-                variant="outline-primary"
-                disabled={currentPage === totalPages}
-                onClick={() => setCurrentPage(currentPage + 1)}
-                className="pagination-nav"
-              >
-                Next
-              </Button>
-            </div>
+                  {/* Page numbers */}
+                  {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+                    let pageNum;
+                    if (pagination.totalPages <= 5) {
+                      pageNum = i + 1;
+                    } else if (pagination.currentPage <= 3) {
+                      pageNum = i + 1;
+                    } else if (pagination.currentPage >= pagination.totalPages - 2) {
+                      pageNum = pagination.totalPages - 4 + i;
+                    } else {
+                      pageNum = pagination.currentPage - 2 + i;
+                    }
+
+                    return (
+                      <Pagination.Item
+                        key={pageNum}
+                        active={pageNum === pagination.currentPage}
+                        onClick={() => handlePageChange(pageNum)}
+                      >
+                        {pageNum}
+                      </Pagination.Item>
+                    );
+                  })}
+
+                  <Pagination.Next
+                    disabled={!pagination.hasNextPage}
+                    onClick={() => handlePageChange(pagination.currentPage + 1)}
+                  />
+                  <Pagination.Last
+                    disabled={!pagination.hasNextPage}
+                    onClick={() => handlePageChange(pagination.totalPages)}
+                  />
+                </Pagination>
+              </Col>
+            </Row>
           </div>
         )}
       </Container>
