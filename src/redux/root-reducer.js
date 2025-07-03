@@ -5,6 +5,7 @@ import FeedbackReducer from './feedback/reducer';
 import ReportedFeedbackReducer from "./reportedFeedback/reducer";
 import messageReducer from './message/reducer';
 import PromotionReducer from './promotion/reducer';
+import AdminDashboardReducer from './adminDashboard/reducer';
 
 const rootReducer = combineReducers({
     Auth: AuthReducer,
@@ -13,6 +14,7 @@ const rootReducer = combineReducers({
     ReportedFeedback: ReportedFeedbackReducer,
     Message: messageReducer,
     Promotion: PromotionReducer,
+    AdminDashboard: AdminDashboardReducer,
 });
 
 export default rootReducer;

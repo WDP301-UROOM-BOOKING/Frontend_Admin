@@ -655,6 +655,11 @@ body {
   color: var(--secondary-color);
 }
 
+.stat-card-icon.owners {
+  background-color: rgba(13, 202, 240, 0.1);
+  color: var(--info-color);
+}
+
 /* Chart Container */
 .chart-container {
   background-color: white;
