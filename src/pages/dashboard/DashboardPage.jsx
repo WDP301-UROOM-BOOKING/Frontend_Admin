@@ -122,12 +122,41 @@ const DashboardPage = () => {
       return [["No data available", "0", "0", "0%"]];
     }
 
-    return dashboardData.locationBreakdown.map(item => [
-      item.region || "Unknown",
-      item.total?.toString() || "0",
-      item.active?.toString() || "0",
-      `${item.activePercentage || "0"}%`
-    ]);
+    // Calculate total hotels for percentage calculation
+    const totalHotels = dashboardData.locationBreakdown.reduce((sum, item) => sum + (item.total || 0), 0);
+
+    return dashboardData.locationBreakdown.map(item => {
+      const count = item.total || 0;
+      const percentage = totalHotels > 0 ? ((count / totalHotels) * 100).toFixed(1) : "0";
+
+      return [
+        item.region || "Unknown",
+        count.toString(),
+        (item.active || 0).toString(),
+        `${percentage}%`
+      ];
+    });
+  };
+
+  // Get hotel classification for PDF
+  const getHotelClassification = () => {
+    if (!dashboardData?.categoryBreakdown) {
+      return [["No data available", "0", "0%"]];
+    }
+
+    // Calculate total hotels for percentage calculation
+    const totalHotels = dashboardData.categoryBreakdown.reduce((sum, item) => sum + (item.total || 0), 0);
+
+    return dashboardData.categoryBreakdown.map(item => {
+      const count = item.total || 0;
+      const percentage = totalHotels > 0 ? ((count / totalHotels) * 100).toFixed(1) : "0";
+
+      return [
+        item.category || "Unknown",
+        count.toString(),
+        `${percentage}%`
+      ];
+    });
   };
 
   // Export dashboard report as PDF
@@ -215,6 +244,23 @@ const DashboardPage = () => {
               body: [
                 ["Region", "Total", "Active", "Percentage"],
                 ...getHotelDistribution()
+              ],
+            },
+            margin: [0, 0, 0, 20],
+          },
+
+          // Hotel Classification Analysis
+          {
+            text: "IV. HOTEL CLASSIFICATION ANALYSIS",
+            style: "sectionHeader",
+            margin: [0, 20, 0, 15],
+          },
+          {
+            table: {
+              widths: ["50%", "25%", "25%"],
+              body: [
+                ["Classification", "Count", "Percentage"],
+                ...getHotelClassification()
               ],
             },
             margin: [0, 0, 0, 20],
@@ -310,12 +356,70 @@ const DashboardPage = () => {
             <tr><td colspan="2" class="section">REVENUE DATA</td></tr>
             <tr><th>Period</th><th>Revenue (USD)</th></tr>`;
 
-      // Add revenue data
+      // Add revenue data (filter future months)
       if (dashboardData.revenueData && dashboardData.revenueData.labels) {
+        const currentDate = new Date();
+        const currentYear = currentDate.getFullYear();
+        const currentMonth = currentDate.getMonth() + 1;
+
         dashboardData.revenueData.labels.forEach((label, index) => {
-          const amount = dashboardData.revenueData.datasets[0]?.data[index] || 0;
-          htmlContent += `<tr><td>${label}</td><td>$${amount.toLocaleString()}</td></tr>`;
+          // Parse year and month from label (e.g., "Jan 2025", "Feb 2025")
+          const labelParts = label.split(' ');
+          let shouldInclude = true;
+
+          if (labelParts.length === 2) {
+            const labelYear = parseInt(labelParts[1]);
+            const labelMonth = new Date(`${labelParts[0]} 1, ${labelYear}`).getMonth() + 1;
+
+            // Skip future months in current year
+            if (labelYear === currentYear && labelMonth > currentMonth) {
+              shouldInclude = false;
+            }
+          }
+
+          if (shouldInclude) {
+            const amount = dashboardData.revenueData.datasets[0]?.data[index] || 0;
+            htmlContent += `<tr><td>${label}</td><td>$${amount.toLocaleString()}</td></tr>`;
+          }
         });
+      }
+
+      // Add hotel distribution by region
+      htmlContent += `
+            <tr><td colspan="2"></td></tr>
+            <tr><td colspan="2" class="section">HOTEL DISTRIBUTION BY REGION</td></tr>
+            <tr><th>Region</th><th>Count & Percentage</th></tr>`;
+
+      if (dashboardData.locationBreakdown && dashboardData.locationBreakdown.length > 0) {
+        // Calculate total hotels for percentage
+        const totalHotels = dashboardData.locationBreakdown.reduce((sum, item) => sum + (item.total || 0), 0);
+
+        dashboardData.locationBreakdown.forEach(item => {
+          const count = item.total || 0;
+          const percentage = totalHotels > 0 ? ((count / totalHotels) * 100).toFixed(1) : "0";
+          htmlContent += `<tr><td>${item.region || 'Unknown'}</td><td>${count} hotels (${percentage}% of total)</td></tr>`;
+        });
+      } else {
+        htmlContent += `<tr><td>No data available</td><td>0</td></tr>`;
+      }
+
+      // Add hotel classification analysis
+      htmlContent += `
+            <tr><td colspan="2"></td></tr>
+            <tr><td colspan="2" class="section">HOTEL CLASSIFICATION ANALYSIS</td></tr>
+            <tr><th>Classification</th><th>Count & Percentage</th></tr>`;
+
+      if (dashboardData.categoryBreakdown && dashboardData.categoryBreakdown.length > 0) {
+        // Calculate total hotels for percentage
+        const totalHotels = dashboardData.categoryBreakdown.reduce((sum, item) => sum + (item.total || 0), 0);
+
+        dashboardData.categoryBreakdown.forEach(item => {
+          const count = item.total || 0;
+          const percentage = totalHotels > 0 ? ((count / totalHotels) * 100).toFixed(1) : "0";
+          htmlContent += `<tr><td>${item.category || 'Unknown'}</td><td>${count} hotels (${percentage}% of total)</td></tr>`;
+        });
+      } else {
+        htmlContent += `<tr><td>No data available</td><td>0</td></tr>`;
       }
 
       htmlContent += `
