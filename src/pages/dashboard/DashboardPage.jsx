@@ -5,6 +5,7 @@ import AdminDashboardActions from "../../redux/adminDashboard/actions";
 import { FaFilePdf, FaFileExcel } from 'react-icons/fa';
 import pdfMake from '../../utils/fonts';
 import { showToast } from '../../components/ToastContainer';
+import ExcelJS from 'exceljs';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -313,8 +314,8 @@ const DashboardPage = () => {
     }
   };
 
-  // Export dashboard report as Excel (HTML format)
-  const exportDashboardExcel = () => {
+  // Export dashboard report as Excel with styling
+  const exportDashboardExcel = async () => {
     if (!dashboardData) {
       showToast.error("No data available for export");
       return;
@@ -324,37 +325,161 @@ const DashboardPage = () => {
 
     try {
       const currentDate = new Date().toLocaleDateString('en-US');
-      const periodText = "COMPREHENSIVE DASHBOARD REPORT";
 
-      // Create HTML table that Excel can open
-      let htmlContent = `
-        <html>
-        <head>
-          <meta charset="UTF-8">
-          <style>
-            table { border-collapse: collapse; width: 100%; }
-            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-            th { background-color: #f2f2f2; font-weight: bold; }
-            .header { font-size: 16px; font-weight: bold; text-align: center; }
-            .section { font-weight: bold; background-color: #e6f3ff; }
-          </style>
-        </head>
-        <body>
-          <table>
-            <tr><td colspan="2" class="header">UROOM ADMIN DASHBOARD</td></tr>
-            <tr><td colspan="2" class="header">${periodText.toUpperCase()}</td></tr>
-            <tr><td colspan="2">Export Date: ${currentDate}</td></tr>
-            <tr><td colspan="2"></td></tr>
-            <tr><td colspan="2" class="section">OVERVIEW STATISTICS</td></tr>
-            <tr><th>Metric</th><th>Value</th></tr>
-            <tr><td>Total Hotels</td><td>${dashboardData.totalHotels || 0}</td></tr>
-            <tr><td>Active Hotels</td><td>${dashboardData.activeHotels || 0}</td></tr>
-            <tr><td>Total Users</td><td>${dashboardData.totalUsers || 0}</td></tr>
-            <tr><td>Hotel Owners</td><td>${dashboardData.totalOwners || 0}</td></tr>
-            <tr><td>Total Revenue</td><td>$${(dashboardData.totalRevenue || 0).toLocaleString()}</td></tr>
-            <tr><td colspan="2"></td></tr>
-            <tr><td colspan="2" class="section">REVENUE DATA</td></tr>
-            <tr><th>Period</th><th>Revenue (USD)</th></tr>`;
+      // Create workbook and worksheet
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('Dashboard Report');
+
+      // Set column widths
+      worksheet.columns = [
+        { width: 35 }, // Column A
+        { width: 25 }, // Column B
+        { width: 18 }  // Column C
+      ];
+
+      let currentRow = 1;
+
+      // Main Headers with styling
+      const titleCell = worksheet.getCell('A1');
+      titleCell.value = 'UROOM ADMIN DASHBOARD';
+      titleCell.font = { bold: true, size: 16, color: { argb: 'FFFFFFFF' } };
+      titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4472C4' } };
+      titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+      titleCell.border = {
+        top: { style: 'thin' }, bottom: { style: 'thin' },
+        left: { style: 'thin' }, right: { style: 'thin' }
+      };
+      worksheet.mergeCells('A1:C1');
+
+      const subtitleCell = worksheet.getCell('A2');
+      subtitleCell.value = 'COMPREHENSIVE DASHBOARD REPORT';
+      subtitleCell.font = { bold: true, size: 14, color: { argb: 'FFFFFFFF' } };
+      subtitleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4472C4' } };
+      subtitleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+      subtitleCell.border = {
+        top: { style: 'thin' }, bottom: { style: 'thin' },
+        left: { style: 'thin' }, right: { style: 'thin' }
+      };
+      worksheet.mergeCells('A2:C2');
+
+      const dateCell = worksheet.getCell('A3');
+      dateCell.value = `Export Date: ${currentDate}`;
+      dateCell.font = { bold: true, size: 12, color: { argb: 'FFFFFFFF' } };
+      dateCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4472C4' } };
+      dateCell.alignment = { horizontal: 'center', vertical: 'middle' };
+      dateCell.border = {
+        top: { style: 'thin' }, bottom: { style: 'thin' },
+        left: { style: 'thin' }, right: { style: 'thin' }
+      };
+      worksheet.mergeCells('A3:C3');
+
+      currentRow = 5;
+
+      // Overview Statistics Section
+      const overviewHeaderCell = worksheet.getCell(`A${currentRow}`);
+      overviewHeaderCell.value = 'OVERVIEW STATISTICS';
+      overviewHeaderCell.font = { bold: true, size: 12, color: { argb: 'FFFFFFFF' } };
+      overviewHeaderCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF70AD47' } };
+      overviewHeaderCell.alignment = { horizontal: 'left', vertical: 'middle' };
+      overviewHeaderCell.border = {
+        top: { style: 'thin' }, bottom: { style: 'thin' },
+        left: { style: 'thin' }, right: { style: 'thin' }
+      };
+      worksheet.mergeCells(`A${currentRow}:C${currentRow}`);
+      currentRow++;
+
+      // Table headers
+      const metricHeaderCell = worksheet.getCell(`A${currentRow}`);
+      metricHeaderCell.value = 'Metric';
+      metricHeaderCell.font = { bold: true, size: 11 };
+      metricHeaderCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2EFDA' } };
+      metricHeaderCell.alignment = { horizontal: 'center', vertical: 'middle' };
+      metricHeaderCell.border = {
+        top: { style: 'thin' }, bottom: { style: 'thin' },
+        left: { style: 'thin' }, right: { style: 'thin' }
+      };
+
+      const valueHeaderCell = worksheet.getCell(`B${currentRow}`);
+      valueHeaderCell.value = 'Value';
+      valueHeaderCell.font = { bold: true, size: 11 };
+      valueHeaderCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2EFDA' } };
+      valueHeaderCell.alignment = { horizontal: 'center', vertical: 'middle' };
+      valueHeaderCell.border = {
+        top: { style: 'thin' }, bottom: { style: 'thin' },
+        left: { style: 'thin' }, right: { style: 'thin' }
+      };
+      currentRow++;
+
+      // Overview data
+      const overviewData = [
+        ['Total Hotels', dashboardData.totalHotels || 0],
+        ['Active Hotels', dashboardData.activeHotels || 0],
+        ['Total Users', dashboardData.totalUsers || 0],
+        ['Hotel Owners', dashboardData.totalOwners || 0],
+        ['Total Revenue', `$${(dashboardData.totalRevenue || 0).toLocaleString()}`]
+      ];
+
+      overviewData.forEach(([metric, value]) => {
+        const metricCell = worksheet.getCell(`A${currentRow}`);
+        metricCell.value = metric;
+        metricCell.font = { size: 10 };
+        metricCell.alignment = { horizontal: 'left', vertical: 'middle' };
+        metricCell.border = {
+          top: { style: 'thin', color: { argb: 'FFD0D0D0' } },
+          bottom: { style: 'thin', color: { argb: 'FFD0D0D0' } },
+          left: { style: 'thin', color: { argb: 'FFD0D0D0' } },
+          right: { style: 'thin', color: { argb: 'FFD0D0D0' } }
+        };
+
+        const valueCell = worksheet.getCell(`B${currentRow}`);
+        valueCell.value = value;
+        valueCell.font = { size: 10 };
+        valueCell.alignment = { horizontal: 'left', vertical: 'middle' };
+        valueCell.border = {
+          top: { style: 'thin', color: { argb: 'FFD0D0D0' } },
+          bottom: { style: 'thin', color: { argb: 'FFD0D0D0' } },
+          left: { style: 'thin', color: { argb: 'FFD0D0D0' } },
+          right: { style: 'thin', color: { argb: 'FFD0D0D0' } }
+        };
+        currentRow++;
+      });
+
+      currentRow++; // Empty row
+
+      // Revenue Data Section
+      const revenueHeaderCell = worksheet.getCell(`A${currentRow}`);
+      revenueHeaderCell.value = 'REVENUE DATA';
+      revenueHeaderCell.font = { bold: true, size: 12, color: { argb: 'FFFFFFFF' } };
+      revenueHeaderCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF70AD47' } };
+      revenueHeaderCell.alignment = { horizontal: 'left', vertical: 'middle' };
+      revenueHeaderCell.border = {
+        top: { style: 'thin' }, bottom: { style: 'thin' },
+        left: { style: 'thin' }, right: { style: 'thin' }
+      };
+      worksheet.mergeCells(`A${currentRow}:C${currentRow}`);
+      currentRow++;
+
+      // Revenue table headers
+      const periodHeaderCell = worksheet.getCell(`A${currentRow}`);
+      periodHeaderCell.value = 'Period';
+      periodHeaderCell.font = { bold: true, size: 11 };
+      periodHeaderCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2EFDA' } };
+      periodHeaderCell.alignment = { horizontal: 'center', vertical: 'middle' };
+      periodHeaderCell.border = {
+        top: { style: 'thin' }, bottom: { style: 'thin' },
+        left: { style: 'thin' }, right: { style: 'thin' }
+      };
+
+      const revenueValueHeaderCell = worksheet.getCell(`B${currentRow}`);
+      revenueValueHeaderCell.value = 'Revenue (USD)';
+      revenueValueHeaderCell.font = { bold: true, size: 11 };
+      revenueValueHeaderCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2EFDA' } };
+      revenueValueHeaderCell.alignment = { horizontal: 'center', vertical: 'middle' };
+      revenueValueHeaderCell.border = {
+        top: { style: 'thin' }, bottom: { style: 'thin' },
+        left: { style: 'thin' }, right: { style: 'thin' }
+      };
+      currentRow++;
 
       // Add revenue data (filter future months)
       if (dashboardData.revenueData && dashboardData.revenueData.labels) {
@@ -379,62 +504,246 @@ const DashboardPage = () => {
 
           if (shouldInclude) {
             const amount = dashboardData.revenueData.datasets[0]?.data[index] || 0;
-            htmlContent += `<tr><td>${label}</td><td>$${amount.toLocaleString()}</td></tr>`;
+
+            const periodCell = worksheet.getCell(`A${currentRow}`);
+            periodCell.value = label;
+            periodCell.font = { size: 10 };
+            periodCell.alignment = { horizontal: 'left', vertical: 'middle' };
+            periodCell.border = {
+              top: { style: 'thin', color: { argb: 'FFD0D0D0' } },
+              bottom: { style: 'thin', color: { argb: 'FFD0D0D0' } },
+              left: { style: 'thin', color: { argb: 'FFD0D0D0' } },
+              right: { style: 'thin', color: { argb: 'FFD0D0D0' } }
+            };
+
+            const amountCell = worksheet.getCell(`B${currentRow}`);
+            amountCell.value = `$${amount.toLocaleString()}`;
+            amountCell.font = { size: 10 };
+            amountCell.alignment = { horizontal: 'left', vertical: 'middle' };
+            amountCell.border = {
+              top: { style: 'thin', color: { argb: 'FFD0D0D0' } },
+              bottom: { style: 'thin', color: { argb: 'FFD0D0D0' } },
+              left: { style: 'thin', color: { argb: 'FFD0D0D0' } },
+              right: { style: 'thin', color: { argb: 'FFD0D0D0' } }
+            };
+            currentRow++;
           }
         });
       }
 
-      // Add hotel distribution by region
-      htmlContent += `
-            <tr><td colspan="2"></td></tr>
-            <tr><td colspan="2" class="section">HOTEL DISTRIBUTION BY REGION</td></tr>
-            <tr><th>Region</th><th>Count & Percentage</th></tr>`;
+      currentRow++; // Empty row
 
+      // Hotel Distribution by Region Section
+      const regionHeaderCell = worksheet.getCell(`A${currentRow}`);
+      regionHeaderCell.value = 'HOTEL DISTRIBUTION BY REGION';
+      regionHeaderCell.font = { bold: true, size: 12, color: { argb: 'FFFFFFFF' } };
+      regionHeaderCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF70AD47' } };
+      regionHeaderCell.alignment = { horizontal: 'left', vertical: 'middle' };
+      regionHeaderCell.border = {
+        top: { style: 'thin' }, bottom: { style: 'thin' },
+        left: { style: 'thin' }, right: { style: 'thin' }
+      };
+      worksheet.mergeCells(`A${currentRow}:C${currentRow}`);
+      currentRow++;
+
+      // Region table headers
+      const regionLabelCell = worksheet.getCell(`A${currentRow}`);
+      regionLabelCell.value = 'Region';
+      regionLabelCell.font = { bold: true, size: 11 };
+      regionLabelCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2EFDA' } };
+      regionLabelCell.alignment = { horizontal: 'center', vertical: 'middle' };
+      regionLabelCell.border = {
+        top: { style: 'thin' }, bottom: { style: 'thin' },
+        left: { style: 'thin' }, right: { style: 'thin' }
+      };
+
+      const regionCountCell = worksheet.getCell(`B${currentRow}`);
+      regionCountCell.value = 'Count';
+      regionCountCell.font = { bold: true, size: 11 };
+      regionCountCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2EFDA' } };
+      regionCountCell.alignment = { horizontal: 'center', vertical: 'middle' };
+      regionCountCell.border = {
+        top: { style: 'thin' }, bottom: { style: 'thin' },
+        left: { style: 'thin' }, right: { style: 'thin' }
+      };
+
+      const regionPercentCell = worksheet.getCell(`C${currentRow}`);
+      regionPercentCell.value = 'Percentage';
+      regionPercentCell.font = { bold: true, size: 11 };
+      regionPercentCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2EFDA' } };
+      regionPercentCell.alignment = { horizontal: 'center', vertical: 'middle' };
+      regionPercentCell.border = {
+        top: { style: 'thin' }, bottom: { style: 'thin' },
+        left: { style: 'thin' }, right: { style: 'thin' }
+      };
+      currentRow++;
+
+      // Region data
       if (dashboardData.locationBreakdown && dashboardData.locationBreakdown.length > 0) {
-        // Calculate total hotels for percentage
         const totalHotels = dashboardData.locationBreakdown.reduce((sum, item) => sum + (item.total || 0), 0);
 
         dashboardData.locationBreakdown.forEach(item => {
           const count = item.total || 0;
           const percentage = totalHotels > 0 ? ((count / totalHotels) * 100).toFixed(1) : "0";
-          htmlContent += `<tr><td>${item.region || 'Unknown'}</td><td>${count} hotels (${percentage}% of total)</td></tr>`;
+
+          const regionCell = worksheet.getCell(`A${currentRow}`);
+          regionCell.value = item.region || 'Unknown';
+          regionCell.font = { size: 10 };
+          regionCell.alignment = { horizontal: 'left', vertical: 'middle' };
+          regionCell.border = {
+            top: { style: 'thin', color: { argb: 'FFD0D0D0' } },
+            bottom: { style: 'thin', color: { argb: 'FFD0D0D0' } },
+            left: { style: 'thin', color: { argb: 'FFD0D0D0' } },
+            right: { style: 'thin', color: { argb: 'FFD0D0D0' } }
+          };
+
+          const countCell = worksheet.getCell(`B${currentRow}`);
+          countCell.value = count;
+          countCell.font = { size: 10 };
+          countCell.alignment = { horizontal: 'center', vertical: 'middle' };
+          countCell.border = {
+            top: { style: 'thin', color: { argb: 'FFD0D0D0' } },
+            bottom: { style: 'thin', color: { argb: 'FFD0D0D0' } },
+            left: { style: 'thin', color: { argb: 'FFD0D0D0' } },
+            right: { style: 'thin', color: { argb: 'FFD0D0D0' } }
+          };
+
+          const percentCell = worksheet.getCell(`C${currentRow}`);
+          percentCell.value = `${percentage}%`;
+          percentCell.font = { size: 10 };
+          percentCell.alignment = { horizontal: 'center', vertical: 'middle' };
+          percentCell.border = {
+            top: { style: 'thin', color: { argb: 'FFD0D0D0' } },
+            bottom: { style: 'thin', color: { argb: 'FFD0D0D0' } },
+            left: { style: 'thin', color: { argb: 'FFD0D0D0' } },
+            right: { style: 'thin', color: { argb: 'FFD0D0D0' } }
+          };
+          currentRow++;
         });
       } else {
-        htmlContent += `<tr><td>No data available</td><td>0</td></tr>`;
+        const noDataCell = worksheet.getCell(`A${currentRow}`);
+        noDataCell.value = 'No data available';
+        noDataCell.font = { size: 10 };
+        noDataCell.alignment = { horizontal: 'left', vertical: 'middle' };
+        noDataCell.border = {
+          top: { style: 'thin', color: { argb: 'FFD0D0D0' } },
+          bottom: { style: 'thin', color: { argb: 'FFD0D0D0' } },
+          left: { style: 'thin', color: { argb: 'FFD0D0D0' } },
+          right: { style: 'thin', color: { argb: 'FFD0D0D0' } }
+        };
+        currentRow++;
       }
 
-      // Add hotel classification analysis
-      htmlContent += `
-            <tr><td colspan="2"></td></tr>
-            <tr><td colspan="2" class="section">HOTEL CLASSIFICATION ANALYSIS</td></tr>
-            <tr><th>Classification</th><th>Count & Percentage</th></tr>`;
+      currentRow++; // Empty row
 
+      // Hotel Classification Section
+      const classificationHeaderCell = worksheet.getCell(`A${currentRow}`);
+      classificationHeaderCell.value = 'HOTEL CLASSIFICATION ANALYSIS';
+      classificationHeaderCell.font = { bold: true, size: 12, color: { argb: 'FFFFFFFF' } };
+      classificationHeaderCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF70AD47' } };
+      classificationHeaderCell.alignment = { horizontal: 'left', vertical: 'middle' };
+      classificationHeaderCell.border = {
+        top: { style: 'thin' }, bottom: { style: 'thin' },
+        left: { style: 'thin' }, right: { style: 'thin' }
+      };
+      worksheet.mergeCells(`A${currentRow}:C${currentRow}`);
+      currentRow++;
+
+      // Classification table headers
+      const classLabelCell = worksheet.getCell(`A${currentRow}`);
+      classLabelCell.value = 'Classification';
+      classLabelCell.font = { bold: true, size: 11 };
+      classLabelCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2EFDA' } };
+      classLabelCell.alignment = { horizontal: 'center', vertical: 'middle' };
+      classLabelCell.border = {
+        top: { style: 'thin' }, bottom: { style: 'thin' },
+        left: { style: 'thin' }, right: { style: 'thin' }
+      };
+
+      const classCountCell = worksheet.getCell(`B${currentRow}`);
+      classCountCell.value = 'Count';
+      classCountCell.font = { bold: true, size: 11 };
+      classCountCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2EFDA' } };
+      classCountCell.alignment = { horizontal: 'center', vertical: 'middle' };
+      classCountCell.border = {
+        top: { style: 'thin' }, bottom: { style: 'thin' },
+        left: { style: 'thin' }, right: { style: 'thin' }
+      };
+
+      const classPercentCell = worksheet.getCell(`C${currentRow}`);
+      classPercentCell.value = 'Percentage';
+      classPercentCell.font = { bold: true, size: 11 };
+      classPercentCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2EFDA' } };
+      classPercentCell.alignment = { horizontal: 'center', vertical: 'middle' };
+      classPercentCell.border = {
+        top: { style: 'thin' }, bottom: { style: 'thin' },
+        left: { style: 'thin' }, right: { style: 'thin' }
+      };
+      currentRow++;
+
+      // Classification data
       if (dashboardData.categoryBreakdown && dashboardData.categoryBreakdown.length > 0) {
-        // Calculate total hotels for percentage
         const totalHotels = dashboardData.categoryBreakdown.reduce((sum, item) => sum + (item.total || 0), 0);
 
         dashboardData.categoryBreakdown.forEach(item => {
           const count = item.total || 0;
           const percentage = totalHotels > 0 ? ((count / totalHotels) * 100).toFixed(1) : "0";
-          htmlContent += `<tr><td>${item.category || 'Unknown'}</td><td>${count} hotels (${percentage}% of total)</td></tr>`;
+
+          const classCell = worksheet.getCell(`A${currentRow}`);
+          classCell.value = item.category || 'Unknown';
+          classCell.font = { size: 10 };
+          classCell.alignment = { horizontal: 'left', vertical: 'middle' };
+          classCell.border = {
+            top: { style: 'thin', color: { argb: 'FFD0D0D0' } },
+            bottom: { style: 'thin', color: { argb: 'FFD0D0D0' } },
+            left: { style: 'thin', color: { argb: 'FFD0D0D0' } },
+            right: { style: 'thin', color: { argb: 'FFD0D0D0' } }
+          };
+
+          const countCell = worksheet.getCell(`B${currentRow}`);
+          countCell.value = count;
+          countCell.font = { size: 10 };
+          countCell.alignment = { horizontal: 'center', vertical: 'middle' };
+          countCell.border = {
+            top: { style: 'thin', color: { argb: 'FFD0D0D0' } },
+            bottom: { style: 'thin', color: { argb: 'FFD0D0D0' } },
+            left: { style: 'thin', color: { argb: 'FFD0D0D0' } },
+            right: { style: 'thin', color: { argb: 'FFD0D0D0' } }
+          };
+
+          const percentCell = worksheet.getCell(`C${currentRow}`);
+          percentCell.value = `${percentage}%`;
+          percentCell.font = { size: 10 };
+          percentCell.alignment = { horizontal: 'center', vertical: 'middle' };
+          percentCell.border = {
+            top: { style: 'thin', color: { argb: 'FFD0D0D0' } },
+            bottom: { style: 'thin', color: { argb: 'FFD0D0D0' } },
+            left: { style: 'thin', color: { argb: 'FFD0D0D0' } },
+            right: { style: 'thin', color: { argb: 'FFD0D0D0' } }
+          };
+          currentRow++;
         });
       } else {
-        htmlContent += `<tr><td>No data available</td><td>0</td></tr>`;
+        const noDataCell = worksheet.getCell(`A${currentRow}`);
+        noDataCell.value = 'No data available';
+        noDataCell.font = { size: 10 };
+        noDataCell.alignment = { horizontal: 'left', vertical: 'middle' };
+        noDataCell.border = {
+          top: { style: 'thin', color: { argb: 'FFD0D0D0' } },
+          bottom: { style: 'thin', color: { argb: 'FFD0D0D0' } },
+          left: { style: 'thin', color: { argb: 'FFD0D0D0' } },
+          right: { style: 'thin', color: { argb: 'FFD0D0D0' } }
+        };
+        currentRow++;
       }
 
-      htmlContent += `
-          </table>
-        </body>
-        </html>`;
-
-      // Create and download file
-      const blob = new Blob([htmlContent], {
-        type: 'application/vnd.ms-excel'
-      });
+      // Generate and download file
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `dashboard-comprehensive-report-${new Date().getTime()}.xls`;
+      a.download = `dashboard-comprehensive-report-${new Date().getTime()}.xlsx`;
       a.click();
       URL.revokeObjectURL(url);
 
