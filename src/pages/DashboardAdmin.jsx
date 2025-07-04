@@ -33,6 +33,7 @@ import { useDispatch } from "react-redux";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import AuthActions from "@redux/auth/actions";
 import { clearToken } from "@utils/handleToken";
+import { ToastProvider } from "../components/ToastContainer";
 import Chat from "./messenger/Chat";
 import ListPaymentCustomer from "./payment/ListPaymentCustomer";
 import ListPromotionPage from "./promotion/ListPromotionPage";
@@ -439,6 +440,7 @@ function AdminDashboard() {
           </div>
         </div>
       </div>
+      <ToastProvider />
     </>
   );
 }

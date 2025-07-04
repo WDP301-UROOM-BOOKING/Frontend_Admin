@@ -70,6 +70,9 @@ const ApiConstants = {
   FETCH_CHAT_MESSAGE: '/chat/chat-history/:receiverId',
   FETCH_CHAT_ALL_USERS: '/chat/chat-users',
 
+  //ADMIN DASHBOARD
+  ADMIN_DASHBOARD_METRICS: '/dashboard-admin/metrics',
+
   //PROMOTION (Admin)
   FETCH_ALL_PROMOTIONS: "/promotions",
   CREATE_PROMOTION: "/promotions",
