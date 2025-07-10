@@ -73,6 +73,11 @@ const ApiConstants = {
   //ADMIN DASHBOARD
   ADMIN_DASHBOARD_METRICS: '/dashboard-admin/metrics',
 
+  //MONTHLY PAYMENT (Admin)
+  FETCH_ALL_MONTHLY_PAYMENTS: "/monthly-payment/admin/all",
+  UPDATE_PAYMENT_STATUS: "/monthly-payment/admin/:paymentId/status",
+  GET_PAYMENT_BY_ID: "/monthly-payment/admin/:paymentId",
+
   //PROMOTION (Admin)
   FETCH_ALL_PROMOTIONS: "/promotions",
   CREATE_PROMOTION: "/promotions",
