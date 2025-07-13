@@ -25,6 +25,9 @@ import {
   FaFileAlt,
 } from "react-icons/fa";
 import "./payment.css";
+import { useDispatch, useSelector } from "react-redux";
+import AuthActions from "@redux/auth/actions";
+import axios from "axios";
 
 const ListPaymentCustomer = () => {
   const [refunds, setRefunds] = useState([]);
@@ -39,93 +42,115 @@ const ListPaymentCustomer = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
 
+
+  const dispatch = useDispatch();
+
+  const sampleRefunds = useSelector((state) => state.Auth.Refund); // hoặc state.refund nếu bạn để reducer riêng
+  console.log('sampleRefunds >> ', sampleRefunds);
+  useEffect(() => {
+    dispatch({
+      type: AuthActions.GET_ALL_REFUND,
+      payload: {
+        onSuccess: (data) => {
+          console.log("Fetched refunds successfully:", data);
+        },
+        onFailed: (msg) => {
+          console.warn("Fetch failed:", msg);
+        },
+        onError: (err) => {
+          console.error("Server error:", err);
+        },
+      },
+    });
+  }, [dispatch]);
+
   // Sample data based on refundingReservation model
-  const sampleRefunds = [
-    {
-      _id: "1",
-      user: {
-        _id: "101",
-        name: "Nguyễn Văn An",
-        email: "nguyenvanan@email.com",
-        phoneNumber: "0901234567",
-      },
-      reservation: {
-        _id: "res_001",
-        hotel: {
-          name: "Luxury Palace Hotel",
-          address: "123 Đường ABC, Quận 1, TP.HCM",
-        },
-        checkInDate: "2024-06-15",
-        checkOutDate: "2024-06-18",
-        totalPrice: 4500000,
-      },
-      refundAmount: 3600000,
-      status: "PENDING",
-      reason: null,
-      accountHolderName: "NGUYEN VAN AN",
-      accountNumber: "1234567890",
-      bankName: "Vietcombank",
-      requestDate: "2024-06-10T08:30:00Z",
-      decisionDate: null,
-      createdAt: "2024-06-10T08:30:00Z",
-    },
-    {
-      _id: "2",
-      user: {
-        _id: "102",
-        name: "Trần Thị Bình",
-        email: "tranthibinh@email.com",
-        phoneNumber: "0987654321",
-      },
-      reservation: {
-        _id: "res_002",
-        hotel: {
-          name: "Seaside Resort & Spa",
-          address: "456 Đường XYZ, Vũng Tàu",
-        },
-        checkInDate: "2024-06-20",
-        checkOutDate: "2024-06-25",
-        totalPrice: 12800000,
-      },
-      refundAmount: 10240000,
-      status: "APPROVED",
-      reason: "Khách hàng hủy do lý do sức khỏe, đã xác minh đầy đủ",
-      accountHolderName: "TRAN THI BINH",
-      accountNumber: "9876543210",
-      bankName: "Techcombank",
-      requestDate: "2024-06-01T14:20:00Z",
-      decisionDate: "2024-06-02T10:15:00Z",
-      createdAt: "2024-06-01T14:20:00Z",
-    },
-    {
-      _id: "3",
-      user: {
-        _id: "103",
-        name: "Lê Minh Cường",
-        email: "leminhcuong@email.com",
-        phoneNumber: "0912345678",
-      },
-      reservation: {
-        _id: "res_003",
-        hotel: {
-          name: "City Center Hotel",
-          address: "789 Đường DEF, Quận 3, TP.HCM",
-        },
-        checkInDate: "2024-05-10",
-        checkOutDate: "2024-05-12",
-        totalPrice: 1200000,
-      },
-      refundAmount: 600000,
-      status: "REJECTED",
-      reason: "Không đủ điều kiện hoàn tiền theo chính sách khách sạn",
-      accountHolderName: "LE MINH CUONG",
-      accountNumber: "5555666677",
-      bankName: "BIDV",
-      requestDate: "2024-05-08T16:45:00Z",
-      decisionDate: "2024-05-09T09:30:00Z",
-      createdAt: "2024-05-08T16:45:00Z",
-    },
-  ];
+  // const sampleRefunds = [
+  //   {
+  //     _id: "1",
+  //     user: {
+  //       _id: "101",
+  //       name: "Nguyễn Văn An",
+  //       email: "nguyenvanan@email.com",
+  //       phoneNumber: "0901234567",
+  //     },
+  //     reservation: {
+  //       _id: "res_001",
+  //       hotel: {
+  //         name: "Luxury Palace Hotel",
+  //         address: "123 Đường ABC, Quận 1, TP.HCM",
+  //       },
+  //       checkInDate: "2024-06-15",
+  //       checkOutDate: "2024-06-18",
+  //       totalPrice: 4500000,
+  //     },
+  //     refundAmount: 3600000,
+  //     status: "PENDING",
+  //     reason: null,
+  //     accountHolderName: "NGUYEN VAN AN",
+  //     accountNumber: "1234567890",
+  //     bankName: "Vietcombank",
+  //     requestDate: "2024-06-10T08:30:00Z",
+  //     decisionDate: null,
+  //     createdAt: "2024-06-10T08:30:00Z",
+  //   },
+  //   {
+  //     _id: "2",
+  //     user: {
+  //       _id: "102",
+  //       name: "Trần Thị Bình",
+  //       email: "tranthibinh@email.com",
+  //       phoneNumber: "0987654321",
+  //     },
+  //     reservation: {
+  //       _id: "res_002",
+  //       hotel: {
+  //         name: "Seaside Resort & Spa",
+  //         address: "456 Đường XYZ, Vũng Tàu",
+  //       },
+  //       checkInDate: "2024-06-20",
+  //       checkOutDate: "2024-06-25",
+  //       totalPrice: 12800000,
+  //     },
+  //     refundAmount: 10240000,
+  //     status: "APPROVED",
+  //     reason: "Khách hàng hủy do lý do sức khỏe, đã xác minh đầy đủ",
+  //     accountHolderName: "TRAN THI BINH",
+  //     accountNumber: "9876543210",
+  //     bankName: "Techcombank",
+  //     requestDate: "2024-06-01T14:20:00Z",
+  //     decisionDate: "2024-06-02T10:15:00Z",
+  //     createdAt: "2024-06-01T14:20:00Z",
+  //   },
+  //   {
+  //     _id: "3",
+  //     user: {
+  //       _id: "103",
+  //       name: "Lê Minh Cường",
+  //       email: "leminhcuong@email.com",
+  //       phoneNumber: "0912345678",
+  //     },
+  //     reservation: {
+  //       _id: "res_003",
+  //       hotel: {
+  //         name: "City Center Hotel",
+  //         address: "789 Đường DEF, Quận 3, TP.HCM",
+  //       },
+  //       checkInDate: "2024-05-10",
+  //       checkOutDate: "2024-05-12",
+  //       totalPrice: 1200000,
+  //     },
+  //     refundAmount: 600000,
+  //     status: "REJECTED",
+  //     reason: "Không đủ điều kiện hoàn tiền theo chính sách khách sạn",
+  //     accountHolderName: "LE MINH CUONG",
+  //     accountNumber: "5555666677",
+  //     bankName: "BIDV",
+  //     requestDate: "2024-05-08T16:45:00Z",
+  //     decisionDate: "2024-05-09T09:30:00Z",
+  //     createdAt: "2024-05-08T16:45:00Z",
+  //   },
+  // ];
 
   useEffect(() => {
     fetchRefunds();
@@ -158,40 +183,61 @@ const ListPaymentCustomer = () => {
   };
 
   const handleSubmitAction = async () => {
-    if (!reason.trim()) {
-      alert("Vui lòng nhập lý do");
-      return;
+  if (!reason.trim()) {
+    alert("Vui lòng nhập lý do");
+    return;
+  }
+
+  try {
+    const newStatus = actionType === "approve" ? "APPROVED" : "REJECTED";
+
+    // Nếu là approve => gọi API Stripe refund
+    if (actionType === "approve") {
+      const response = await dispatch({
+        type: AuthActions.REFUNDING,
+        payload: {
+        onSuccess: (data) => {
+          console.log("Fetched refunds successfully:", data);
+        },
+        onFailed: (msg) => {
+          console.warn("Fetch failed:", msg);
+        },
+        onError: (err) => {
+          console.error("Server error:", err);
+        },
+        id: selectedRefund._id
+      }
+      });
+      console.log("Stripe refund response:", response.data);
     }
 
-    try {
-      const newStatus = actionType === "approve" ? "APPROVED" : "REJECTED";
-      const updatedRefunds = refunds.map(refund =>
-        refund._id === selectedRefund._id
-          ? {
-              ...refund,
-              status: newStatus,
-              reason: reason,
-              decisionDate: new Date().toISOString(),
-            }
-          : refund
-      );
-      
-      setRefunds(updatedRefunds);
-      setShowActionModal(false);
-      setReason("");
-      
-      // Show success message
-      alert(`Đã ${actionType === "approve" ? "phê duyệt" : "từ chối"} yêu cầu hoàn tiền thành công!`);
-    } catch (error) {
-      console.error("Error updating refund status:", error);
-      alert("Có lỗi xảy ra, vui lòng thử lại!");
-    }
-  };
+    // Cập nhật local state
+    const updatedRefunds = refunds.map(refund =>
+      refund._id === selectedRefund._id
+        ? {
+            ...refund,
+            status: newStatus,
+            reason: reason,
+            decisionDate: new Date().toISOString(),
+          }
+        : refund
+    );
+
+    setRefunds(updatedRefunds);
+    setShowActionModal(false);
+    setReason("");
+
+    alert(`Đã ${actionType === "approve" ? "phê duyệt" : "từ chối"} yêu cầu hoàn tiền thành công!`);
+  } catch (error) {
+    console.error("Error handling refund:", error);
+    alert("Có lỗi xảy ra, vui lòng thử lại!");
+  }
+};
 
   // Filter refunds (exclude WAITING_FOR_BANK_INFO)
   const filteredRefunds = refunds
-    .filter(refund => refund.status !== "WAITING_FOR_BANK_INFO")
-    .filter(refund => {
+    ?.filter(refund => refund.status !== "WAITING_FOR_BANK_INFO")
+    ?.filter(refund => {
       const matchesSearch = 
         refund.user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         refund.user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -205,7 +251,7 @@ const ListPaymentCustomer = () => {
   // Pagination
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = filteredRefunds.slice(indexOfFirstItem, indexOfLastItem);
+  const currentItems = filteredRefunds?.slice(indexOfFirstItem, indexOfLastItem);
   const totalPages = Math.ceil(filteredRefunds.length / itemsPerPage);
 
   const formatCurrency = (amount) => {

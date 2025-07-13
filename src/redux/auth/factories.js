@@ -45,5 +45,11 @@ const Factories = {
   verify_forgot_password: (data) => {
     return api.post(ApiConstants.VERIFY_FORGOT_PASSWORD, data);
   },
+  get_all_refund: () => {
+    return api.get(ApiConstants.GET_ALL_REFUND);
+  },
+  refund: (refundId) => {
+    return api.post(ApiConstants.REFUND.replace(":id", refundId));
+  },
 };
 export default Factories;

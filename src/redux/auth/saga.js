@@ -300,6 +300,73 @@ function* login_google() {
   });
 }
 
+function* getRefundingReservations() {
+  yield takeEvery(AuthActions.GET_ALL_REFUND, function* (action) {
+    const { onSuccess, onFailed, onError } = action.payload || {};
+
+    try {
+      const response = yield call(Factories.get_all_refund);
+
+      console.log("Get refunding reservations status:", response?.status);
+
+      if (response?.status === 200) {
+        yield put({
+          type: AuthActions.GET_REFUNDING_SUCCESS,
+          payload: response.data, // hoặc response.data.data nếu bạn bọc trong { data: [...] }
+        });
+        onSuccess?.(response.data);
+      } else {
+        onFailed?.(response?.data?.message || "Failed to fetch refunding reservations");
+      }
+    } catch (error) {
+      const status = error.response?.status;
+      const msg = error.response?.data?.message || "Something went wrong";
+
+      console.log("Get refunding reservations error status:", status);
+      console.log("Get refunding reservations error message:", msg);
+
+      if (status >= 500) {
+        onError?.(error);
+      } else {
+        onFailed?.(msg);
+      }
+    }
+  });
+}
+
+function* refundingCustomer() {
+  yield takeEvery(AuthActions.REFUNDING, function* (action) {
+    const {  id, onSuccess, onFailed, onError } = action.payload || {};
+
+    try {
+      const response = yield call(Factories.refund(id));
+
+      console.log("Get refunding reservations status:", response?.status);
+
+      if (response?.status === 200) {
+        yield put({
+          type: AuthActions.REFUNDING_SUCCESS,
+          payload: response.data, // hoặc response.data.data nếu bạn bọc trong { data: [...] }
+        });
+        onSuccess?.(response.data);
+      } else {
+        onFailed?.(response?.data?.message || "Failed to fetch refunding reservations");
+      }
+    } catch (error) {
+      const status = error.response?.status;
+      const msg = error.response?.data?.message || "Something went wrong";
+
+
+      if (status >= 500) {
+        onError?.(error);
+      } else {
+        onFailed?.(msg);
+      }
+    }
+  });
+}
+
+
 export default function* userSaga() {
   yield all([
     fork(login), 
@@ -312,5 +379,7 @@ export default function* userSaga() {
     fork(removeFavoriteHotel),
     fork(addFavoriteHotel),
     fork(login_google),
+    fork(getRefundingReservations),
+    fork(refundingCustomer),
   ]);
 }

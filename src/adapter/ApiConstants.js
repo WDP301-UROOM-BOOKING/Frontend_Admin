@@ -85,7 +85,8 @@ const ApiConstants = {
   DELETE_PROMOTION: "/promotions/:id",
   GET_PROMOTION_BY_ID: "/promotions/:id",
   TOGGLE_PROMOTION_STATUS: "/promotions/:id/status",
-
+  GET_ALL_REFUND: "/payment/getAllRefund",
+  REFUND:"payment/stripe-refund/:id"
 };
 
 export default ApiConstants;

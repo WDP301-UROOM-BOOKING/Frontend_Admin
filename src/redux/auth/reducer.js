@@ -4,6 +4,7 @@ const initState = {
   Auth: {
     _id: -1,
   },
+  Refund:[]
 };
 
 const Reducer = (state = initState, action) => {
@@ -93,6 +94,11 @@ const Reducer = (state = initState, action) => {
           ...state.Auth,
           favorites: [...state.Auth.favorites, action.payload?.hotelId],
         },
+      };
+      case AuthActions.GET_REFUNDING_SUCCESS:
+      return {
+        ...state,
+        Refund: action.payload?.data,
       };
     default:
       return state;
