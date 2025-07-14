@@ -86,7 +86,10 @@ const ApiConstants = {
   GET_PROMOTION_BY_ID: "/promotions/:id",
   TOGGLE_PROMOTION_STATUS: "/promotions/:id/status",
   GET_ALL_REFUND: "/payment/getAllRefund",
-  REFUND:"payment/stripe-refund/:id"
+  REFUND:"payment/stripe-refund/:id",
+  // CUSTOMER MANAGEMENT (Admin)
+  LOCK_CUSTOMER: "/auth/lock-customer/:id",
+  UNLOCK_CUSTOMER: "/auth/unlock-customer/:id",
 };
 
 export default ApiConstants;

@@ -2,6 +2,27 @@ import "bootstrap/dist/css/bootstrap.min.css";
 import { useState, useEffect } from "react";
 import CustomerDetail from "./DetailCustomerAdmin";
 import ConfirmationModal from "@components/ConfirmationModal";
+import ApiConstants from "../../adapter/ApiConstants";
+import { Modal, Form, Button } from "react-bootstrap";
+import ButtonGroup from "react-bootstrap/ButtonGroup";
+import ToggleButton from "react-bootstrap/ToggleButton";
+import pdfMake from "pdfmake/build/pdfmake";
+import pdfFonts from "pdfmake/build/vfs_fonts";
+pdfMake.vfs = pdfFonts.vfs;
+
+const LOCK_REASONS = [
+  "Spam/quảng cáo (Spam/Advertisement)",
+  "Lừa đảo/thông tin giả (Fraud/Fake Information)",
+  "Vi phạm điều khoản sử dụng (Violation of Terms)",
+  "Hành vi không phù hợp (Inappropriate Behavior)",
+  "Yêu cầu của pháp luật (Legal Requirement)"
+];
+const LOCK_DURATIONS = [
+  { label: "7 ngày", value: "7" },
+  { label: "14 ngày", value: "14" },
+  { label: "30 ngày", value: "30" },
+  { label: "Vĩnh viễn", value: "permanent" }
+];
 
 function ListCustomerAdmin() {
   const [showModal, setShowModal] = useState(false);
@@ -20,12 +41,47 @@ function ListCustomerAdmin() {
   const anyChecked = selectedIds.length > 0;
   const [sortOption, setSortOption] = useState("");
 
+  // State cho modal lý do/mức độ lock từng user
+  const [showLockReasonModal, setShowLockReasonModal] = useState(false);
+  const [lockReason, setLockReason] = useState(LOCK_REASONS[0]);
+  const [lockDuration, setLockDuration] = useState(LOCK_DURATIONS[0].value);
+
   const handleAccept = () => {
     console.log("Item accepted!")
   }
   const handleDelete = () => {
     console.log("Item deleted!")
   }
+
+  // Xuất PDF với pdfmake (hỗ trợ Unicode)
+  const handleExportPDF = () => {
+    const tableBody = [
+      ["ID", "Name", "Email", "Phone", "Status", "Join Date"],
+      ...customers.map(c => [
+        `KH-${c._id}`,
+        c.name,
+        c.email,
+        c.phoneNumber,
+        c.status === 'ACTIVE' ? 'Active' : 'Locked',
+        c.createdAt ? new Date(c.createdAt).toLocaleDateString() : ''
+      ])
+    ];
+    const docDefinition = {
+      content: [
+        { text: "Customer List", style: "header" },
+        {
+          table: {
+            headerRows: 1,
+            body: tableBody
+          }
+        }
+      ],
+      styles: {
+        header: { fontSize: 18, bold: true, margin: [0, 0, 0, 10] }
+      }
+    };
+    pdfMake.createPdf(docDefinition).download("customer-list.pdf");
+  };
 
   // Fetch customers from backend
   useEffect(() => {
@@ -81,7 +137,9 @@ function ListCustomerAdmin() {
   // Khi click Lock
   const handleShowLockModal = (customer) => {
     setSelectedCustomer(customer);
-    setShowDeleteModal(true);
+    setLockReason(LOCK_REASONS[0]);
+    setLockDuration(LOCK_DURATIONS[0].value);
+    setShowLockReasonModal(true);
   };
   // Khi click Unlock
   const handleShowUnlockModal = (customer) => {
@@ -92,12 +150,14 @@ function ListCustomerAdmin() {
   const handleLockCustomer = async () => {
     if (!selectedCustomer) return;
     const token = localStorage.getItem("token");
-    await fetch(`http://localhost:5000/api/auth/lock-customer/${selectedCustomer._id}`, {
+    const url = `http://localhost:5000/api${ApiConstants.LOCK_CUSTOMER.replace(":id", selectedCustomer._id)}`;
+    await fetch(url, {
       method: "PUT",
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
+      // body sẽ được thêm sau khi có modal lý do/mức độ
     });
     setCustomers(prev => prev.map(c => c._id === selectedCustomer._id ? { ...c, isLocked: true, status: 'LOCK' } : c));
     setShowDeleteModal(false);
@@ -107,7 +167,8 @@ function ListCustomerAdmin() {
   const handleUnlockCustomer = async () => {
     if (!selectedCustomer) return;
     const token = localStorage.getItem("token");
-    await fetch(`http://localhost:5000/api/auth/unlock-customer/${selectedCustomer._id}`, {
+    const url = `http://localhost:5000/api${ApiConstants.UNLOCK_CUSTOMER.replace(":id", selectedCustomer._id)}`;
+    await fetch(url, {
       method: "PUT",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -143,10 +204,14 @@ function ListCustomerAdmin() {
   const handleBulkLock = async () => {
     const token = localStorage.getItem("token");
     const idsToLock = selectedUsers.filter(u => !u.isLocked).map(u => u._id);
-    await Promise.all(idsToLock.map(id => fetch(`http://localhost:5000/api/auth/lock-customer/${id}`, {
+    await Promise.all(idsToLock.map(id => {
+      const url = `http://localhost:5000/api${ApiConstants.LOCK_CUSTOMER.replace(":id", id)}`;
+      return fetch(url, {
       method: "PUT",
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-    })));
+        // body sẽ được thêm sau khi có modal lý do/mức độ
+      });
+    }));
     setCustomers(prev => prev.map(c => idsToLock.includes(c._id) ? { ...c, isLocked: true, status: 'LOCK' } : c));
     setShowBulkLockModal(false);
     setSelectedIds([]);
@@ -155,10 +220,13 @@ function ListCustomerAdmin() {
   const handleBulkUnlock = async () => {
     const token = localStorage.getItem("token");
     const idsToUnlock = selectedUsers.filter(u => u.isLocked).map(u => u._id);
-    await Promise.all(idsToUnlock.map(id => fetch(`http://localhost:5000/api/auth/unlock-customer/${id}`, {
+    await Promise.all(idsToUnlock.map(id => {
+      const url = `http://localhost:5000/api${ApiConstants.UNLOCK_CUSTOMER.replace(":id", id)}`;
+      return fetch(url, {
       method: "PUT",
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-    })));
+      });
+    }));
     setCustomers(prev => prev.map(c => idsToUnlock.includes(c._id) ? { ...c, isLocked: false, status: 'ACTIVE' } : c));
     setShowBulkUnlockModal(false);
     setSelectedIds([]);
@@ -173,6 +241,49 @@ function ListCustomerAdmin() {
     ));
   };
 
+  // Xác nhận lock với lý do và mức độ
+  const handleConfirmLock = async () => {
+    if (!selectedCustomer) return;
+    const token = localStorage.getItem("token");
+    const url = `http://localhost:5000/api${ApiConstants.LOCK_CUSTOMER.replace(":id", selectedCustomer._id)}`;
+    const res = await fetch(url, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        reasonLocked: lockReason,
+        lockDuration: lockDuration
+      })
+    });
+    const data = await res.json();
+    // Nếu backend trả về user mới (data.data), cập nhật lại customers
+    if (data && data.data) {
+      setCustomers(prev => prev.map(c => c._id === selectedCustomer._id ? { ...c, ...data.data } : c));
+    } else {
+      setCustomers(prev => prev.map(c => c._id === selectedCustomer._id ? { ...c, isLocked: true, status: 'LOCK' } : c));
+    }
+    setShowLockReasonModal(false);
+    setSelectedCustomer(null);
+  };
+
+  // Tính thời gian còn lại cho unlock (nếu có)
+  let unlockCountdown = null;
+  if (selectedCustomer && selectedCustomer.lockDuration && selectedCustomer.lockDuration !== 'permanent' && selectedCustomer.lockExpiresAt) {
+    const now = new Date();
+    const expires = new Date(selectedCustomer.lockExpiresAt);
+    const diffMs = expires - now;
+    if (diffMs > 0) {
+      const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+      const diffHours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+      unlockCountdown = `${diffDays > 0 ? diffDays + ' ngày, ' : ''}${diffHours} giờ, ${diffMinutes} phút`;
+    } else {
+      unlockCountdown = 'Sắp được mở khóa tự động';
+    }
+  }
+
   return (
     <div className="customers-content">
       <div className="page-header">
@@ -181,7 +292,7 @@ function ListCustomerAdmin() {
           {/* <button className="btn btn-outline-primary">
             <i className="bi bi-filter"></i> Lọc
           </button> */}
-          <button className="btn btn-primary">
+          <button className="btn btn-primary" onClick={handleExportPDF}>
             <i className="bi bi-download"></i> Xuất dữ liệu
           </button>
         </div>
@@ -357,15 +468,55 @@ function ListCustomerAdmin() {
         onLockChange={handleLockChange}
       />
       {/* Delete Confirmation Modal */}
-      <ConfirmationModal
-        show={showDeleteModal}
-        onHide={() => setShowDeleteModal(false)}
-        onConfirm={handleLockCustomer}
-        title="Confirm Lock Customer"
-        message="Are you sure you want to lock this customer ?"
-        confirmButtonText="Confirm"
-        type="danger"
-      />
+
+      {/* Modal chọn lý do và mức độ lock */}
+      <Modal show={showLockReasonModal} onHide={() => setShowLockReasonModal(false)} centered>
+        <Modal.Header closeButton>
+          <Modal.Title>Chọn lý do và mức độ khóa tài khoản</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form>
+            <Form.Group className="mb-3">
+              <Form.Label>Lý do khóa</Form.Label>
+              <Form.Select value={lockReason} onChange={e => setLockReason(e.target.value)}>
+                {LOCK_REASONS.map(reason => (
+                  <option key={reason} value={reason}>{reason}</option>
+                ))}
+              </Form.Select>
+            </Form.Group>
+            <Form.Group>
+              <Form.Label>Mức độ khóa</Form.Label>
+              <div className="d-flex justify-content-center mt-2">
+                <ButtonGroup>
+                  {LOCK_DURATIONS.map(opt => (
+                    <ToggleButton
+                      key={opt.value}
+                      id={`lock-duration-${opt.value}`}
+                      type="radio"
+                      variant={lockDuration === opt.value ? "danger" : "outline-secondary"}
+                      name="lockDuration"
+                      value={opt.value}
+                      checked={lockDuration === opt.value}
+                      onChange={e => setLockDuration(e.currentTarget.value)}
+                      className="mx-1"
+                    >
+                      {opt.label}
+                    </ToggleButton>
+                  ))}
+                </ButtonGroup>
+              </div>
+            </Form.Group>
+          </Form>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowLockReasonModal(false)}>
+            Hủy
+          </Button>
+          <Button variant="danger" onClick={handleConfirmLock}>
+            Xác nhận khóa
+          </Button>
+        </Modal.Footer>
+      </Modal>
 
       {/* Accept Confirmation Modal */}
       <ConfirmationModal
@@ -373,7 +524,16 @@ function ListCustomerAdmin() {
         onHide={() => setShowAcceptModal(false)}
         onConfirm={handleUnlockCustomer}
         title="Confirm Unlock Customer"
-        message="Are you sure you want to unlock this customer ?"
+        message={
+          selectedCustomer && selectedCustomer.lockDuration && selectedCustomer.lockDuration !== 'permanent' && unlockCountdown
+            ? (
+                <>
+                  <div>Tài khoản này sẽ tự động được mở khóa sau: <b>{unlockCountdown}</b></div>
+                  <div>Bạn có chắc chắn rằng muốn mở khóa ngay bây giờ không?</div>
+                </>
+              )
+            : "Are you sure you want to unlock this customer?"
+        }
         confirmButtonText="Confirm"
         type="accept"
       />
