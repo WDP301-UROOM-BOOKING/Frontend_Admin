@@ -1,9 +1,8 @@
-"use client";
-
 import { useEffect, useState } from "react";
 import DetailReportedAdmin from "./DetailReportedAdmin";
 import { useAppDispatch } from "../../redux/store";
 import ReportFeedbackActions from "../../redux/reportedFeedback/actions";
+import { ToastProvider, showToast } from "@components/ToastContainer";
 
 function ReportedFeedbackAdmin() {
   const dispatch = useAppDispatch();
@@ -15,8 +14,7 @@ function ReportedFeedbackAdmin() {
 
   const [reports, setReports] = useState([]); 
 
-  // Gọi API khi component mount
-  useEffect(() => {
+  const loadReportedFeedbacks = () => {
     setLoading(true);
     dispatch({
       type: ReportFeedbackActions.GET_ALL_REPORTED_FEEDBACKS,
@@ -24,14 +22,17 @@ function ReportedFeedbackAdmin() {
         onSuccess: (data) => {
           setLoading(false);
           setReports(data);
-          console.log("Fetched reports:", data);
         },
         onFailed: (msg) => {
-          console.error("Lỗi lấy danh sách báo cáo:", msg);
           setLoading(false);
         },
       },
     });
+  };
+
+  // Gọi API khi component mount
+  useEffect(() => {
+    loadReportedFeedbacks();
   }, [dispatch]);
 
   // Lọc dữ liệu
@@ -103,6 +104,7 @@ function ReportedFeedbackAdmin() {
 
   return (
     <div className="reports-content">
+      <ToastProvider />
       {/* Header */}
       <div className="page-header">
         <h1>Báo cáo vi phạm</h1>
@@ -193,7 +195,6 @@ function ReportedFeedbackAdmin() {
           </tbody>
         </table>
       </div>
-
       {/* Modal */}
       {selectedReport && (
         <DetailReportedAdmin
@@ -202,6 +203,7 @@ function ReportedFeedbackAdmin() {
           handleClose={() => setShowModal(false)}
           feedbackId={selectedReport.feedback?._id}
           feedbackData={selectedReport}
+          onUpdateSuccess={loadReportedFeedbacks} // Thêm prop này
         />
       )}
     </div>

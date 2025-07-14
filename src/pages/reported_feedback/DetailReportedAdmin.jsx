@@ -17,8 +17,15 @@ import { useAppDispatch } from "../../redux/store";
 import ReportFeedbackActions from "../../redux/reportedFeedback/actions";
 import FeedbackActions from "../../redux/feedback/actions";
 import "bootstrap/dist/css/bootstrap.min.css";
+import { showToast, ToastProvider } from "@components/ToastContainer";
 
-function DetailReportedAdmin({ show, handleClose, feedbackId, feedbackData }) {
+function DetailReportedAdmin({
+  show,
+  handleClose,
+  feedbackId,
+  feedbackData,
+  onUpdateSuccess,
+}) {
   const [entriesPerPage, setEntriesPerPage] = useState("10");
   const [searchTerm, setSearchTerm] = useState("");
   const [reportStatuses, setReportStatuses] = useState({});
@@ -126,7 +133,16 @@ function DetailReportedAdmin({ show, handleClose, feedbackId, feedbackData }) {
       (r) => getCurrentStatus(r.status, r.id) === "Chưa xử lý"
     );
 
-    if (approvingReports.length === 0) return;
+    if (approvingReports.length === 0) {
+      showToast.warning("Không có báo cáo nào cần phê duyệt!");
+      return;
+    }
+
+    let completedCount = 0;
+    const totalReports = approvingReports.length;
+
+    // Hiển thị toast bắt đầu xử lý
+    showToast.info("Đang xử lý phê duyệt báo cáo...");
 
     approvingReports.forEach((r) => {
       dispatch({
@@ -136,9 +152,16 @@ function DetailReportedAdmin({ show, handleClose, feedbackId, feedbackData }) {
           data: {
             status: "APPROVED",
           },
-          onSuccess: () => { loadReports();},
+          onSuccess: () => {
+            completedCount++;
+            if (completedCount === totalReports) {
+              showToast.success(`Đã phê duyệt ${totalReports} báo cáo thành công!`);
+              loadReports();
+              onUpdateSuccess();
+            }
+          },
           onFailed: (msg) => {
-            alert(`Phê duyệt báo cáo thất bại (ID: ${r.id}): ${msg}`);
+            showToast.error(`Phê duyệt báo cáo thất bại: ${msg}`);
           },
         },
       });
@@ -160,14 +183,13 @@ function DetailReportedAdmin({ show, handleClose, feedbackId, feedbackData }) {
         feedbackId: currentFeedback.id,
         status: "NONACTIVE",
         onSuccess: () => {
-          console.log(
-            "🟢 Feedback đã chuyển sang NONACTIVE sau khi phê duyệt tất cả báo cáo."
-          );
+          showToast.success("Feedback đã được ẩn khỏi hệ thống!");
           loadReports();
           handleClose();
+          onUpdateSuccess();
         },
         onFailed: (msg) => {
-          alert("Cập nhật trạng thái feedback thất bại: " + msg);
+          showToast.error(`Cập nhật trạng thái feedback thất bại: ${msg}`);
         },
       },
     });
@@ -183,13 +205,22 @@ function DetailReportedAdmin({ show, handleClose, feedbackId, feedbackData }) {
   };
 
   const handleRejectConfirm = () => {
-    if (!rejectReason.trim()) return;
+    if (!rejectReason.trim()) {
+      showToast.warning("Vui lòng nhập lý do từ chối!");
+      return;
+    }
 
     const rejectingReports = currentFeedback.reports.filter(
       (r) => getCurrentStatus(r.status, r.id) === "Chưa xử lý"
     );
 
     if (currentReportId === "bulk") {
+      let completedCount = 0;
+      const totalReports = rejectingReports.length;
+
+      // Hiển thị toast bắt đầu xử lý
+      showToast.info("Đang xử lý từ chối báo cáo...");
+
       rejectingReports.forEach((r) => {
         dispatch({
           type: ReportFeedbackActions.UPDATE_REPORT_STATUS,
@@ -199,24 +230,20 @@ function DetailReportedAdmin({ show, handleClose, feedbackId, feedbackData }) {
               status: "REJECT",
               rejectReason,
             },
-            onSuccess: () => {},
+            onSuccess: () => {
+              completedCount++;
+              if (completedCount === totalReports) {
+                showToast.success(`Đã từ chối ${totalReports} báo cáo thành công!`);
+                loadReports();
+                onUpdateSuccess();
+              }
+            },
             onFailed: (msg) => {
-              alert("Từ chối báo cáo thất bại: " + msg);
+              showToast.error(`Từ chối báo cáo thất bại: ${msg}`);
             },
           },
         });
       });
-
-      // Cập nhật UI sau khi dispatch
-      const newStatuses = {},
-        newReasons = {};
-      rejectingReports.forEach((r) => {
-        newStatuses[r.id] = "Đã từ chối";
-        newReasons[r.id] = rejectReason;
-      });
-
-      setReportStatuses((prev) => ({ ...prev, ...newStatuses }));
-      setRejectReasons((prev) => ({ ...prev, ...newReasons }));
     }
 
     setShowRejectModal(false);
@@ -241,6 +268,7 @@ function DetailReportedAdmin({ show, handleClose, feedbackId, feedbackData }) {
 
   return (
     <>
+      <ToastProvider />
       <Modal show={show} onHide={handleClose} size="xl">
         <Modal.Header closeButton>
           <Modal.Title>Chi tiết báo cáo Feedback </Modal.Title>

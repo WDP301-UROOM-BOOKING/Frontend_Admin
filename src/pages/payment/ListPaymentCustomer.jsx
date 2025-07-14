@@ -64,94 +64,6 @@ const ListPaymentCustomer = () => {
     });
   }, [dispatch]);
 
-  // Sample data based on refundingReservation model
-  // const sampleRefunds = [
-  //   {
-  //     _id: "1",
-  //     user: {
-  //       _id: "101",
-  //       name: "Nguyễn Văn An",
-  //       email: "nguyenvanan@email.com",
-  //       phoneNumber: "0901234567",
-  //     },
-  //     reservation: {
-  //       _id: "res_001",
-  //       hotel: {
-  //         name: "Luxury Palace Hotel",
-  //         address: "123 Đường ABC, Quận 1, TP.HCM",
-  //       },
-  //       checkInDate: "2024-06-15",
-  //       checkOutDate: "2024-06-18",
-  //       totalPrice: 4500000,
-  //     },
-  //     refundAmount: 3600000,
-  //     status: "PENDING",
-  //     reason: null,
-  //     accountHolderName: "NGUYEN VAN AN",
-  //     accountNumber: "1234567890",
-  //     bankName: "Vietcombank",
-  //     requestDate: "2024-06-10T08:30:00Z",
-  //     decisionDate: null,
-  //     createdAt: "2024-06-10T08:30:00Z",
-  //   },
-  //   {
-  //     _id: "2",
-  //     user: {
-  //       _id: "102",
-  //       name: "Trần Thị Bình",
-  //       email: "tranthibinh@email.com",
-  //       phoneNumber: "0987654321",
-  //     },
-  //     reservation: {
-  //       _id: "res_002",
-  //       hotel: {
-  //         name: "Seaside Resort & Spa",
-  //         address: "456 Đường XYZ, Vũng Tàu",
-  //       },
-  //       checkInDate: "2024-06-20",
-  //       checkOutDate: "2024-06-25",
-  //       totalPrice: 12800000,
-  //     },
-  //     refundAmount: 10240000,
-  //     status: "APPROVED",
-  //     reason: "Khách hàng hủy do lý do sức khỏe, đã xác minh đầy đủ",
-  //     accountHolderName: "TRAN THI BINH",
-  //     accountNumber: "9876543210",
-  //     bankName: "Techcombank",
-  //     requestDate: "2024-06-01T14:20:00Z",
-  //     decisionDate: "2024-06-02T10:15:00Z",
-  //     createdAt: "2024-06-01T14:20:00Z",
-  //   },
-  //   {
-  //     _id: "3",
-  //     user: {
-  //       _id: "103",
-  //       name: "Lê Minh Cường",
-  //       email: "leminhcuong@email.com",
-  //       phoneNumber: "0912345678",
-  //     },
-  //     reservation: {
-  //       _id: "res_003",
-  //       hotel: {
-  //         name: "City Center Hotel",
-  //         address: "789 Đường DEF, Quận 3, TP.HCM",
-  //       },
-  //       checkInDate: "2024-05-10",
-  //       checkOutDate: "2024-05-12",
-  //       totalPrice: 1200000,
-  //     },
-  //     refundAmount: 600000,
-  //     status: "REJECTED",
-  //     reason: "Không đủ điều kiện hoàn tiền theo chính sách khách sạn",
-  //     accountHolderName: "LE MINH CUONG",
-  //     accountNumber: "5555666677",
-  //     bankName: "BIDV",
-  //     requestDate: "2024-05-08T16:45:00Z",
-  //     decisionDate: "2024-05-09T09:30:00Z",
-  //     createdAt: "2024-05-08T16:45:00Z",
-  //   },
-  // ];
-
   useEffect(() => {
     fetchRefunds();
   }, []);
@@ -248,11 +160,22 @@ const ListPaymentCustomer = () => {
       return matchesSearch && matchesStatus;
     });
 
+  // Kiểm tra và đảm bảo filteredRefunds là một mảng
+  const safeFilteredRefunds = Array.isArray(filteredRefunds) ? filteredRefunds : [];
+
   // Pagination
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = filteredRefunds?.slice(indexOfFirstItem, indexOfLastItem);
-  const totalPages = Math.ceil(filteredRefunds.length / itemsPerPage);
+  const currentItems = safeFilteredRefunds.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(safeFilteredRefunds.length / itemsPerPage);
+
+  // Cập nhật stats object
+  const stats = {
+    total: safeFilteredRefunds.length,
+    pending: safeFilteredRefunds.filter(r => r.status === "PENDING").length,
+    approved: safeFilteredRefunds.filter(r => r.status === "APPROVED").length,
+    rejected: safeFilteredRefunds.filter(r => r.status === "REJECTED").length,
+  };
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('vi-VN', {
@@ -285,13 +208,6 @@ const ListPaymentCustomer = () => {
         {config.icon} {config.text}
       </Badge>
     );
-  };
-
-  const stats = {
-    total: filteredRefunds.length,
-    pending: filteredRefunds.filter(r => r.status === "PENDING").length,
-    approved: filteredRefunds.filter(r => r.status === "APPROVED").length,
-    rejected: filteredRefunds.filter(r => r.status === "REJECTED").length,
   };
 
   if (loading) {
@@ -421,7 +337,8 @@ const ListPaymentCustomer = () => {
               </Col>
               <Col lg={3} md={3} className="text-lg-end">
                 <div className="results-info">
-                  Hiển thị <strong>{currentItems.length}</strong> / <strong>{filteredRefunds.length}</strong> yêu cầu
+                  Hiển thị <strong>{currentItems?.length || 0}</strong> /{" "}
+                  <strong>{safeFilteredRefunds?.length || 0}</strong> yêu cầu
                 </div>
               </Col>
             </Row>
