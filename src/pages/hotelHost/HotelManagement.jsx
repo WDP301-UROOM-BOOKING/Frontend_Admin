@@ -5,56 +5,114 @@ import "bootstrap/dist/css/bootstrap.min.css";
 
 import * as Routers from "../../utils/Routes";
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
-const HotelManagement = ({setActiveTab}) => {
+import { useState, useEffect } from "react";
+import ApiConstants from "../../adapter/ApiConstants";
+import { Modal, Form, Button } from "react-bootstrap";
+import ButtonGroup from "react-bootstrap/ButtonGroup";
+import ToggleButton from "react-bootstrap/ToggleButton";
+
+const LOCK_REASONS = [
+  "Spam/quảng cáo (Spam/Advertisement)",
+  "Lừa đảo/thông tin giả (Fraud/Fake Information)",
+  "Vi phạm điều khoản sử dụng (Violation of Terms)",
+  "Hành vi không phù hợp (Inappropriate Behavior)",
+  "Yêu cầu của pháp luật (Legal Requirement)"
+];
+const LOCK_DURATIONS = [
+  { label: "7 ngày", value: "7" },
+  { label: "14 ngày", value: "14" },
+  { label: "30 ngày", value: "30" },
+  { label: "Vĩnh viễn", value: "permanent" }
+];
+
+const HotelManagement = ({ setActiveTab }) => {
   const navigate = useNavigate();
-  const hotelHosts = [
-    {
-      id: "H-7829",
-      name: "Nguyễn Văn A",
-      email: "nguyenvana@example.com",
-      phone: "0901234567",
-      hotels: 3,
-      joinDate: "15/01/2023",
-      status: "Hoạt động",
-    },
-    {
-      id: "H-7830",
-      name: "Trần Thị B",
-      email: "tranthib@example.com",
-      phone: "0912345678",
-      hotels: 2,
-      joinDate: "20/03/2023",
-      status: "Hoạt động",
-    },
-    {
-      id: "H-7831",
-      name: "Lê Văn C",
-      email: "levanc@example.com",
-      phone: "0923456789",
-      hotels: 1,
-      joinDate: "05/05/2023",
-      status: "Tạm khóa",
-    },
-    {
-      id: "H-7832",
-      name: "Phạm Thị D",
-      email: "phamthid@example.com",
-      phone: "0934567890",
-      hotels: 4,
-      joinDate: "12/07/2023",
-      status: "Hoạt động",
-    },
-    {
-      id: "H-7833",
-      name: "Hoàng Văn E",
-      email: "hoangvane@example.com",
-      phone: "0945678901",
-      hotels: 2,
-      joinDate: "30/09/2023",
-      status: "Hoạt động",
-    },
-  ];
+  const [hosts, setHosts] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(1);
+  const [limit] = useState(8); // Số lượng mỗi trang
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
+  // Modal lock/unlock state
+  const [selectedHost, setSelectedHost] = useState(null);
+  const [showLockReasonModal, setShowLockReasonModal] = useState(false);
+  const [lockReason, setLockReason] = useState(LOCK_REASONS[0]);
+  const [lockDuration, setLockDuration] = useState(LOCK_DURATIONS[0].value);
+  const [showAcceptModal, setShowAcceptModal] = useState(false);
+  // ... countdown, unlockCountdown sẽ thêm sau
+  const [selectedIds, setSelectedIds] = useState([]);
+  const allChecked = hosts.length > 0 && selectedIds.length === hosts.length;
+  const anyChecked = selectedIds.length > 0;
+  // Modal xác nhận unlock nhiều host
+  const [showBulkUnlockModal, setShowBulkUnlockModal] = useState(false);
+  // State cho search, filter, sort
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState(""); // "" = tất cả, "ACTIVE", "LOCK"
+  const [sortOption, setSortOption] = useState("");
+
+  // Chọn/bỏ chọn tất cả
+  const handleCheckAll = () => {
+    if (allChecked) setSelectedIds([]);
+    else setSelectedIds(hosts.map(h => h._id));
+  };
+  // Chọn/bỏ chọn từng dòng
+  const handleCheck = (id) => {
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
+  };
+
+  // Tìm trạng thái của các host được chọn
+  const selectedHosts = hosts.filter(h => selectedIds.includes(h._id));
+  const allLocked = selectedHosts.length > 0 && selectedHosts.every(h => h.isLocked);
+  const allUnlocked = selectedHosts.length > 0 && selectedHosts.every(h => !h.isLocked);
+  const mixed = selectedHosts.length > 0 && !allLocked && !allUnlocked;
+
+  // Unlock nhiều host: chỉ unlock host đang lock
+  const handleBulkUnlock = async () => {
+    const token = localStorage.getItem("token");
+    const idsToUnlock = selectedHosts.filter(h => h.isLocked).map(h => h._id);
+    await Promise.all(idsToUnlock.map(id => {
+      const url = `http://localhost:5000/api${ApiConstants.UNLOCK_CUSTOMER.replace(":id", id)}`;
+      return fetch(url, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      });
+    }));
+    setHosts(prev => prev.map(h => idsToUnlock.includes(h._id) ? { ...h, isLocked: false, status: 'ACTIVE' } : h));
+    setShowBulkUnlockModal(false);
+    setSelectedIds([]);
+  };
+
+  useEffect(() => {
+    const fetchHosts = async () => {
+      setLoading(true);
+      try {
+        const token = localStorage.getItem("token");
+        let url = `http://localhost:5000/api/auth/owners?page=${page}&limit=${limit}`;
+        if (search) url += `&search=${encodeURIComponent(search)}`;
+        if (statusFilter) url += `&status=${statusFilter}`;
+        if (sortOption) url += `&sort=${sortOption}`;
+        const res = await fetch(url, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+        if (data.success) {
+          setHosts(data.data);
+          setTotalPages(data.totalPages || 1);
+          setTotal(data.total || 0);
+        } else {
+          setHosts([]);
+          setTotalPages(1);
+          setTotal(0);
+        }
+      } catch (err) {
+        setHosts([]);
+        setTotalPages(1);
+        setTotal(0);
+      }
+      setLoading(false);
+    };
+    fetchHosts();
+  }, [page, limit, search, statusFilter, sortOption]);
   const getStatusColor = (status) => {
     switch (status) {
       case "Đã thanh toán":
@@ -73,6 +131,69 @@ const HotelManagement = ({setActiveTab}) => {
   }
 
   // Xử lý thay đổi trạng thái tài khoản
+  // Hàm lock host
+  const handleConfirmLock = async () => {
+    if (!selectedHost) return;
+    const token = localStorage.getItem("token");
+    const url = `http://localhost:5000/api${ApiConstants.LOCK_CUSTOMER.replace(":id", selectedHost._id)}`;
+    const res = await fetch(url, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        reasonLocked: lockReason,
+        lockDuration: lockDuration
+      })
+    });
+    const data = await res.json();
+    if (data && data.data) {
+      setHosts(prev => prev.map(h => h._id === selectedHost._id ? { ...h, ...data.data } : h));
+    } else {
+      setHosts(prev => prev.map(h => h._id === selectedHost._id ? { ...h, status: 'LOCK', isLocked: true } : h));
+    }
+    setShowLockReasonModal(false);
+    setSelectedHost(null);
+  };
+
+  // Hàm unlock host
+  const handleUnlockHost = async () => {
+    if (!selectedHost) return;
+    const token = localStorage.getItem("token");
+    const url = `http://localhost:5000/api${ApiConstants.UNLOCK_CUSTOMER.replace(":id", selectedHost._id)}`;
+    const res = await fetch(url, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
+    const data = await res.json();
+    if (data && data.data) {
+      setHosts(prev => prev.map(h => h._id === selectedHost._id ? { ...h, ...data.data } : h));
+    } else {
+      setHosts(prev => prev.map(h => h._id === selectedHost._id ? { ...h, status: 'ACTIVE', isLocked: false } : h));
+    }
+    setShowAcceptModal(false);
+    setSelectedHost(null);
+  };
+
+  // Tính thời gian còn lại (nếu có)
+  let unlockCountdown = null;
+  if (selectedHost && selectedHost.lockDuration && selectedHost.lockDuration !== 'permanent' && selectedHost.lockExpiresAt) {
+    const now = new Date();
+    const expires = new Date(selectedHost.lockExpiresAt);
+    const diffMs = expires - now;
+    if (diffMs > 0) {
+      const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+      const diffHours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+      unlockCountdown = `${diffDays > 0 ? diffDays + ' ngày, ' : ''}${diffHours} giờ, ${diffMinutes} phút`;
+    } else {
+      unlockCountdown = 'Sắp được mở khóa tự động';
+    }
+  }
 
   return (
     <div className="hotel-hosts-content">
@@ -90,19 +211,41 @@ const HotelManagement = ({setActiveTab}) => {
         <div className="filters-bar">
           <div className="search-box">
             <i className="bi bi-search"></i>
-            <input type="text" placeholder="Tìm kiếm hotel host..." />
+            <input
+              type="text"
+              placeholder="Tìm kiếm hotel host..."
+              value={search}
+              onChange={e => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
+            />
           </div>
           <div className="filters">
-            <select className="form-select">
-              <option>Tất cả trạng thái</option>
-              <option>Hoạt động</option>
-              <option>Tạm khóa</option>
+            <select
+              className="form-select"
+              value={statusFilter}
+              onChange={e => {
+                setStatusFilter(e.target.value);
+                setPage(1);
+              }}
+            >
+              <option value="">Tất cả trạng thái</option>
+              <option value="ACTIVE">Hoạt động</option>
+              <option value="LOCK">Tạm khóa</option>
             </select>
-            <select className="form-select">
-              <option>Sắp xếp theo</option>
-              <option>Tên A-Z</option>
-              <option>Ngày tham gia (Mới nhất)</option>
-              <option>Số lượng khách sạn (Cao nhất)</option>
+            <select
+              className="form-select"
+              value={sortOption}
+              onChange={e => {
+                setSortOption(e.target.value);
+                setPage(1);
+              }}
+            >
+              <option value="">Sắp xếp theo</option>
+              <option value="name">Tên A-Z</option>
+              <option value="createdAt">Ngày tham gia (Mới nhất)</option>
+              <option value="hotelCount">Số lượng khách sạn (Cao nhất)</option>
             </select>
           </div>
         </div>
@@ -112,7 +255,7 @@ const HotelManagement = ({setActiveTab}) => {
             <thead>
               <tr>
                 <th>
-                  <input type="checkbox" className="form-check-input" />
+                  <input type="checkbox" className="form-check-input" checked={allChecked} onChange={handleCheckAll} />
                 </th>
                 <th>ID</th>
                 <th>Tên</th>
@@ -125,20 +268,20 @@ const HotelManagement = ({setActiveTab}) => {
               </tr>
             </thead>
             <tbody>
-              {hotelHosts.map((host) => (
-                <tr key={host.id}>
+              {hosts.map((host) => (
+                <tr key={host._id}>
                   <td>
-                    <input type="checkbox" className="form-check-input" />
+                    <input type="checkbox" className="form-check-input" checked={selectedIds.includes(host._id)} onChange={() => handleCheck(host._id)} />
                   </td>
-                  <td>{host.id}</td>
+                  <td>{`H-${host._id}`}</td>
                   <td>{host.name}</td>
                   <td>{host.email}</td>
-                  <td>{host.phone}</td>
-                  <td>{host.hotels}</td>
-                  <td>{host.joinDate}</td>
+                  <td>{host.phoneNumber}</td>
+                  <td>{host.ownedHotels?.length || 0}</td>
+                  <td>{host.createdAt ? new Date(host.createdAt).toLocaleDateString() : ''}</td>
                   <td>
-                    <span className={`badge bg-${getStatusColor(host.status)}`}>
-                      {host.status}
+                    <span className={`badge ${host.status === 'ACTIVE' ? 'bg-success' : 'bg-secondary'}`}>
+                      {host.status === 'ACTIVE' ? 'Hoạt động' : 'Tạm khóa'}
                     </span>
                   </td>
                   <td>
@@ -147,63 +290,179 @@ const HotelManagement = ({setActiveTab}) => {
                         className="btn btn-sm btn-primary"
                         title="Xem chi tiết"
                         onClick={() => {
-                          setActiveTab('hotel_information')
+                          localStorage.setItem('selectedHotelHostAdmin', JSON.stringify(host));
+                          setActiveTab('hotel_information');
                         }}
                       >
                         <i className="bi bi-eye"></i>
                       </button>
-                      {/* <button
-                        className="btn btn-sm btn-warning"
-                        title="Chỉnh sửa"
-                      >
-                        <i className="bi bi-pencil"></i>
-                      </button> */}
-                      <button
-                        className="btn btn-sm btn-danger"
-                        title="Khóa tài khoản"
-                      >
-                        <i className="bi bi-lock"></i>
-                      </button>
+                      {host.status === 'ACTIVE' ? (
+                        <button
+                          className="btn btn-sm btn-danger"
+                          title="Khóa tài khoản"
+                          onClick={() => {
+                            setSelectedHost(host);
+                            setLockReason(LOCK_REASONS[0]);
+                            setLockDuration(LOCK_DURATIONS[0].value);
+                            setShowLockReasonModal(true);
+                          }}
+                        >
+                          <i className="bi bi-lock"></i>
+                        </button>
+                      ) : (
+                        <button
+                          className="btn btn-sm btn-success"
+                          title="Mở tài khoản"
+                          onClick={() => {
+                            setSelectedHost(host);
+                            setShowAcceptModal(true);
+                          }}
+                        >
+                          <i className="bi bi-unlock"></i>
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
               ))}
+              {/* Hàng drop-down khi chọn nhiều */}
+              {anyChecked && (
+                <tr>
+                  <td colSpan="9">
+                    <div className="d-flex justify-content-between align-items-center">
+                      <span>Đã chọn {selectedIds.length} hotel host</span>
+                      <div className="d-flex gap-2 ms-auto">
+                        {(allLocked || mixed) && (
+                          <button className="btn btn-success" type="button" onClick={() => setShowBulkUnlockModal(true)}>
+                            <i className="bi bi-unlock"></i> Mở tài khoản
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
 
         <div className="pagination-container">
-          <div className="pagination-info">Hiển thị 1-5 của 24 kết quả</div>
+          <div className="pagination-info">
+            Hiển thị trang {page} / {totalPages} của {total} hotel host
+          </div>
           <ul className="pagination">
-            <li className="page-item disabled">
-              <a className="page-link" href="#">
+            <li className={`page-item${page === 1 ? " disabled" : ""}`}>
+              <button className="page-link" onClick={() => setPage(page - 1)} disabled={page === 1}>
                 Trước
-              </a>
+              </button>
             </li>
-            <li className="page-item active">
-              <a className="page-link" href="#">
-                1
-              </a>
-            </li>
-            <li className="page-item">
-              <a className="page-link" href="#">
-                2
-              </a>
-            </li>
-            <li className="page-item">
-              <a className="page-link" href="#">
-                3
-              </a>
-            </li>
-            <li className="page-item">
-              <a className="page-link" href="#">
+            {Array.from({ length: totalPages }, (_, i) => (
+              <li key={i + 1} className={`page-item${page === i + 1 ? " active" : ""}`}>
+                <button className="page-link" onClick={() => setPage(i + 1)}>
+                  {i + 1}
+                </button>
+              </li>
+            ))}
+            <li className={`page-item${page === totalPages ? " disabled" : ""}`}>
+              <button className="page-link" onClick={() => setPage(page + 1)} disabled={page === totalPages}>
                 Sau
-              </a>
+              </button>
             </li>
           </ul>
         </div>
       </div>
      
+      {/* Modal chọn lý do và mức độ lock */}
+      <Modal show={showLockReasonModal} onHide={() => setShowLockReasonModal(false)} centered>
+        <Modal.Header closeButton>
+          <Modal.Title>Chọn lý do và mức độ khóa tài khoản</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form>
+            <Form.Group className="mb-3">
+              <Form.Label>Lý do khóa</Form.Label>
+              <Form.Select value={lockReason} onChange={e => setLockReason(e.target.value)}>
+                {LOCK_REASONS.map(reason => (
+                  <option key={reason} value={reason}>{reason}</option>
+                ))}
+              </Form.Select>
+            </Form.Group>
+            <Form.Group>
+              <Form.Label>Mức độ khóa</Form.Label>
+              <div className="d-flex justify-content-center mt-2">
+                <ButtonGroup>
+                  {LOCK_DURATIONS.map(opt => (
+                    <ToggleButton
+                      key={opt.value}
+                      id={`lock-duration-${opt.value}`}
+                      type="radio"
+                      variant={lockDuration === opt.value ? "danger" : "outline-secondary"}
+                      name="lockDuration"
+                      value={opt.value}
+                      checked={lockDuration === opt.value}
+                      onChange={e => setLockDuration(e.currentTarget.value)}
+                      className="mx-1"
+                    >
+                      {opt.label}
+                    </ToggleButton>
+                  ))}
+                </ButtonGroup>
+              </div>
+            </Form.Group>
+          </Form>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowLockReasonModal(false)}>
+            Hủy
+          </Button>
+          <Button variant="danger" onClick={handleConfirmLock}>
+            Xác nhận khóa
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Modal xác nhận unlock */}
+      <Modal show={showAcceptModal} onHide={() => setShowAcceptModal(false)} centered>
+        <Modal.Header closeButton>
+          <Modal.Title>Xác nhận mở khóa tài khoản</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {selectedHost && selectedHost.lockDuration && selectedHost.lockDuration !== 'permanent' && unlockCountdown
+            ? (
+                <>
+                  <div>Tài khoản này sẽ tự động được mở khóa sau: <b>{unlockCountdown}</b></div>
+                  <div>Bạn có chắc chắn rằng muốn mở khóa ngay bây giờ không?</div>
+                </>
+              )
+            : "Bạn có chắc chắn muốn mở khóa tài khoản này không?"}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowAcceptModal(false)}>
+            Hủy
+          </Button>
+          <Button variant="success" onClick={handleUnlockHost}>
+            Xác nhận mở khóa
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Modal xác nhận unlock nhiều host */}
+      <Modal show={showBulkUnlockModal} onHide={() => setShowBulkUnlockModal(false)} centered>
+        <Modal.Header closeButton>
+          <Modal.Title>Xác nhận mở khóa tài khoản</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          Bạn có chắc chắn muốn mở khóa {selectedIds.length} hotel host đã chọn?
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowBulkUnlockModal(false)}>
+            Hủy
+          </Button>
+          <Button variant="success" onClick={handleBulkUnlock}>
+            Xác nhận mở khóa
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </div>
   );
 };

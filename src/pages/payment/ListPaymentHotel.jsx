@@ -5,6 +5,9 @@ import api from "../../libs/api";
 import ApiConstants from "../../adapter/ApiConstants";
 import { showToast, ToastProvider } from "../../components/ToastContainer";
 import "../../css/admin/payment.css";
+import pdfMake from "pdfmake/build/pdfmake";
+import pdfFonts from "pdfmake/build/vfs_fonts";
+pdfMake.vfs = pdfFonts.vfs;
 
 const ListPaymentHotel = () => {
   const [payments, setPayments] = useState([]);
@@ -102,13 +105,134 @@ const ListPaymentHotel = () => {
     setConfirmModal(true);
   };
 
+  // Xuất PDF toàn bộ danh sách hóa đơn (filteredPayments)
+  const handleExportPDF = async () => {
+    try {
+      // Lấy filter hiện tại
+      const params = {};
+      if (selectedMonth !== "" && selectedMonth !== undefined) {
+        params.month = parseInt(selectedMonth);
+      }
+      if (selectedYear !== "" && selectedYear !== undefined) {
+        params.year = parseInt(selectedYear);
+      }
+      if (selectedStatus !== "" && selectedStatus !== undefined) {
+        params.status = selectedStatus;
+      }
+      // Lấy toàn bộ danh sách (limit lớn)
+      params.limit = 10000;
+      params.page = 1;
+      const response = await api.get(ApiConstants.FETCH_ALL_MONTHLY_PAYMENTS, { params });
+      const allPayments = response.data.data || [];
+      // Tạo lại map id cho allPayments
+      const paymentIdMapAll = allPayments.reduce((acc, payment, idx) => {
+        acc[payment._id] = `KS-${String(idx + 1).padStart(3, '0')}`;
+        return acc;
+      }, {});
+      const tableBody = [
+        ["Mã hóa đơn", "Khách sạn", "Số tiền", "Tháng/Năm", "Trạng thái", "Ngày yêu cầu"],
+        ...allPayments.map(payment => [
+          paymentIdMapAll[payment._id] || payment._id,
+          payment.hotel?.hotelName || "N/A",
+          formatCurrency(payment.amount),
+          `${payment.month}/${payment.year}`,
+          getStatusText(payment.status),
+          new Date(payment.requestDate).toLocaleDateString('vi-VN')
+        ])
+      ];
+      const docDefinition = {
+        content: [
+          { text: "DANH SÁCH HÓA ĐƠN THANH TOÁN KHÁCH SẠN", style: "header" },
+          {
+            table: {
+              headerRows: 1,
+              body: tableBody
+            }
+          }
+        ],
+        styles: {
+          header: { fontSize: 16, bold: true, margin: [0, 0, 0, 10], alignment: "center" }
+        },
+        defaultStyle: {
+          font: "Roboto"
+        }
+      };
+      pdfMake.createPdf(docDefinition).download("DanhSachHoaDon.pdf");
+    } catch (error) {
+      showToast.error('Không thể xuất PDF danh sách hóa đơn');
+    }
+  };
+
+  // Xuất PDF chi tiết cho từng khách sạn
+  const handleExportHotelPDF = (payment) => {
+    const hotelPayments = payments.filter(p => p.hotel?._id === payment.hotel?._id);
+    const tableBody = [
+      ["Mã hóa đơn", "Số tiền", "Tháng/Năm", "Trạng thái", "Ngày yêu cầu"],
+      ...hotelPayments.map(p => [
+        paymentIdMap[p._id] || p._id,
+        formatCurrency(p.amount),
+        `${p.month}/${p.year}`,
+        getStatusText(p.status),
+        new Date(p.requestDate).toLocaleDateString('vi-VN')
+      ])
+    ];
+    const docDefinition = {
+      content: [
+        { text: "HÓA ĐƠN THANH TOÁN KHÁCH SẠN", style: "header" },
+        { text: `Khách sạn: ${payment.hotel?.hotelName || "N/A"}` },
+        { text: `Địa chỉ: ${payment.hotel?.address || "N/A"}` },
+        { text: `Số điện thoại: ${payment.hotel?.phoneNumber || "N/A"}` },
+        { text: `Email: ${payment.hotel?.email || "N/A"}` },
+        { text: "\nDanh sách hóa đơn của khách sạn này:", margin: [0, 10, 0, 4] },
+        {
+          table: {
+            headerRows: 1,
+            body: tableBody
+          },
+          layout: 'lightHorizontalLines',
+          margin: [0, 0, 0, 10]
+        },
+        { text: `Số tiền: ${formatCurrency(payment.amount)}` },
+        { text: `Tháng/Năm: ${payment.month}/${payment.year}` },
+        { text: `Trạng thái: ${getStatusText(payment.status)}` },
+        { text: `Ngày yêu cầu: ${new Date(payment.requestDate).toLocaleDateString('vi-VN')}` },
+        payment.paymentDate ? { text: `Ngày thanh toán: ${new Date(payment.paymentDate).toLocaleDateString('vi-VN')}` } : null,
+        payment.accountHolderName ? { text: `\nThông tin ngân hàng:\nChủ tài khoản: ${payment.accountHolderName}\nSố tài khoản: ${payment.accountNumber}\nNgân hàng: ${payment.bankName}${payment.branchName ? `\nChi nhánh: ${payment.branchName}` : ''}` } : null,
+        payment.reason ? { text: `Lý do: ${payment.reason}` } : null
+      ].filter(Boolean),
+      styles: {
+        header: { fontSize: 16, bold: true, margin: [0, 0, 0, 10], alignment: "center" }
+      },
+      defaultStyle: {
+        font: "Roboto"
+      }
+    };
+    pdfMake.createPdf(docDefinition).download(`HoaDon_${paymentIdMap[payment._id] || payment._id}.pdf`);
+  };
+
+  // Tạo map từ _id sang mã KS-xxx dựa trên vị trí thực tế trong payments
+  const paymentIdMap = payments.reduce((acc, payment, idx) => {
+    acc[payment._id] = `KS-${String(idx + 1).padStart(3, '0')}`;
+    return acc;
+  }, {});
+
   // Filter payments based on search term
-  const filteredPayments = payments.filter((payment, index) => {
-    const formattedId = `KS-${String(index + 1).padStart(3, '0')}`;
+  const filteredPayments = payments.filter((payment) => {
+    const formattedId = paymentIdMap[payment._id] || '';
+    const search = searchTerm.trim().toLowerCase();
+    const hotelName = payment.hotel?.hotelName?.toLowerCase() || '';
+    const paymentId = payment._id?.toLowerCase() || '';
+    const formattedIdLower = formattedId.toLowerCase();
+
+    // Nếu searchTerm là số, kiểm tra với phần số của formattedId
+    const searchIsNumber = /^\d+$/.test(search);
+    const formattedIdNumber = formattedId.replace('KS-', '');
+
     return (
-      payment.hotel?.hotelName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      payment._id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      formattedId.toLowerCase().includes(searchTerm.toLowerCase())
+      hotelName.includes(search) ||
+      paymentId.includes(search) ||
+      formattedIdLower.includes(search) ||
+      (searchIsNumber && formattedIdNumber.includes(search))
     );
   });
 
@@ -224,9 +348,7 @@ const ListPaymentHotel = () => {
   };
 
   // Format ID to KS- format
-  const formatPaymentId = (index) => {
-    return `KS-${String(index + 1).padStart(3, '0')}`;
-  };
+  const formatPaymentId = (payment) => paymentIdMap[payment._id] || '';
 
   return (
     <div className="payments-content">
@@ -239,6 +361,13 @@ const ListPaymentHotel = () => {
             disabled={loading}
           >
             <i className="bi bi-arrow-clockwise"></i> Làm mới
+          </button>
+          <button
+            className="btn btn-outline-success ms-2"
+            onClick={handleExportPDF}
+            disabled={loading || filteredPayments.length === 0}
+          >
+            <i className="bi bi-printer"></i> In danh sách hóa đơn
           </button>
         </div>
       </div>
@@ -272,7 +401,7 @@ const ListPaymentHotel = () => {
               >
                 <option value="">Tất cả tháng</option>
                 {months.map((month, index) => (
-                  <option key={index} value={index}>
+                  <option key={index} value={index + 1}>
                     {month}
                   </option>
                 ))}
@@ -321,7 +450,7 @@ const ListPaymentHotel = () => {
               ) : (
                 currentPayments.map((payment, index) => (
                   <tr key={payment._id}>
-                    <td>{formatPaymentId(indexOfFirstItem + index)}</td>
+                    <td>{formatPaymentId(payment)}</td>
                     <td>{payment.hotel?.hotelName || 'N/A'}</td>
                     <td>{formatCurrency(payment.amount)}</td>
                     <td>{payment.month}/{payment.year}</td>
@@ -353,10 +482,7 @@ const ListPaymentHotel = () => {
                         <button
                           className="btn btn-sm btn-warning"
                           title="In hóa đơn"
-                          onClick={() => {
-                            // TODO: Implement print invoice functionality
-                            console.log('Print invoice for payment:', payment._id);
-                          }}
+                          onClick={() => handleExportHotelPDF(payment)}
                         >
                           <i className="bi bi-printer"></i>
                         </button>
