@@ -34,8 +34,10 @@ import {
   FaSort,
   FaSortUp,
   FaSortDown,
+  FaUsers,
 } from "react-icons/fa";
 import DetailPromotionPage from "./DetailPromotionPage";
+import PromotionUsersModal from "./PromotionUsersModal";
 import {
   fetchAllPromotions,
   createPromotion,
@@ -72,6 +74,10 @@ const ListPromotionPage = () => {
   const [modalType, setModalType] = useState("add");
   const [deleteConfirm, setDeleteConfirm] = useState({ show: false, id: null });
   const [alert, setAlert] = useState({ show: false, type: "", message: "" });
+
+  // New modals for promotion user management
+  const [showUsersModal, setShowUsersModal] = useState(false);
+  const [selectedPromotionForUsers, setSelectedPromotionForUsers] = useState(null);
 
   const fetchPromotions = useCallback(() => {
     const params = {
@@ -286,6 +292,12 @@ const ListPromotionPage = () => {
     }
   };
 
+  // New handlers for promotion user management
+  const handleViewUsers = (promotion) => {
+    setSelectedPromotionForUsers(promotion);
+    setShowUsersModal(true);
+  };
+
   // Utility functions
 
   const formatDate = (dateString) => {
@@ -310,21 +322,37 @@ const ListPromotionPage = () => {
 
     // If promotion is manually set to inactive
     if (!promotion.isActive) {
-      return <Badge bg="danger" className="status-badge status-inactive">Inactive</Badge>;
+      return (
+        <Badge bg="danger" className="status-badge status-inactive">
+          ⚫ Inactive
+        </Badge>
+      );
     }
 
     // If promotion has expired
     if (now > endDate) {
-      return <Badge bg="secondary" className="status-badge status-expired">Expired</Badge>;
+      return (
+        <Badge bg="secondary" className="status-badge status-expired">
+          ⏰ Expired
+        </Badge>
+      );
     }
 
     // If promotion hasn't started yet
     if (now < startDate) {
-      return <Badge bg="warning" className="status-badge status-upcoming">Upcoming</Badge>;
+      return (
+        <Badge bg="warning" className="status-badge status-upcoming">
+          ⏳ Coming Soon
+        </Badge>
+      );
     }
 
     // If promotion is currently active
-    return <Badge bg="success" className="status-badge status-active">Active</Badge>;
+    return (
+      <Badge bg="success" className="status-badge status-active">
+        ✅ Active
+      </Badge>
+    );
   };
 
   const getProgressColor = (percentage) => {
@@ -507,13 +535,31 @@ const ListPromotionPage = () => {
                   className="filter-select"
                 >
                   <option value="all">All Status</option>
-                  <option value="active">Active</option>
-                  <option value="upcoming">Upcoming</option>
-                  <option value="inactive">Inactive</option>
-                  <option value="expired">Expired</option>
+                  <option value="active">✅ Active</option>
+                  <option value="upcoming">⏳ Coming Soon</option>
+                  <option value="inactive">⚫ Inactive</option>
+                  <option value="expired">⏰ Expired</option>
                 </Form.Select>
               </Col>
-              <Col lg={6} md={9} className="text-lg-end">
+              <Col lg={2} md={3} className="mb-3 mb-lg-0">
+                <Form.Select
+                  value={`${filters.sortBy}-${filters.sortOrder}`}
+                  onChange={(e) => {
+                    const [sortBy, sortOrder] = e.target.value.split('-');
+                    dispatch(setPromotionFilters({ sortBy, sortOrder }));
+                  }}
+                  className="filter-select"
+                >
+                  <option value="status-asc">📊 Status (Active First)</option>
+                  <option value="createdAt-desc">🕒 Newest First</option>
+                  <option value="createdAt-asc">🕒 Oldest First</option>
+                  <option value="name-asc">📝 Name A-Z</option>
+                  <option value="name-desc">📝 Name Z-A</option>
+                  <option value="usedCount-desc">📈 Most Used</option>
+                  <option value="usedCount-asc">📉 Least Used</option>
+                </Form.Select>
+              </Col>
+              <Col lg={4} md={6} className="text-lg-end">
                 <div className="results-info">
                   Showing <strong>{promotions.length}</strong> of <strong>{pagination.totalPromotions}</strong> promotions
                   {filters.search && (
@@ -549,7 +595,8 @@ const ListPromotionPage = () => {
                       )}
                       {filters.sortBy !== 'name' && <FaSort className="ms-1 text-muted" />}
                     </th>
-                    <th>Type & Discount</th>
+                    <th>Type & Visibility</th>
+                    <th>Discount</th>
                     <th
                       style={{ cursor: 'pointer' }}
                       onClick={() => handleSort('startDate')}
@@ -572,25 +619,41 @@ const ListPromotionPage = () => {
                     </th>
                     <th
                       style={{ cursor: 'pointer' }}
-                      onClick={() => handleSort('isActive')}
+                      onClick={() => handleSort('status')}
                     >
                       Status
-                      {filters.sortBy === 'isActive' && (
+                      {filters.sortBy === 'status' && (
                         filters.sortOrder === 'asc' ? <FaSortUp className="ms-1" /> : <FaSortDown className="ms-1" />
                       )}
-                      {filters.sortBy !== 'isActive' && <FaSort className="ms-1 text-muted" />}
+                      {filters.sortBy !== 'status' && <FaSort className="ms-1 text-muted" />}
                     </th>
                     <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {promotions.map((promotion) => {
-                    const usagePercentage = promotion.usageLimit 
-                      ? (promotion.usedCount / promotion.usageLimit) * 100 
+                    const usagePercentage = promotion.usageLimit
+                      ? (promotion.usedCount / promotion.usageLimit) * 100
                       : 0;
 
+                    // Determine status class for row styling
+                    const now = new Date();
+                    const startDate = new Date(promotion.startDate);
+                    const endDate = new Date(promotion.endDate);
+
+                    let statusClass = '';
+                    if (!promotion.isActive) {
+                      statusClass = 'status-inactive';
+                    } else if (now > endDate) {
+                      statusClass = 'status-expired';
+                    } else if (now < startDate) {
+                      statusClass = 'status-upcoming';
+                    } else {
+                      statusClass = 'status-active';
+                    }
+
                     return (
-                      <tr key={promotion._id} className="promotion-row">
+                      <tr key={promotion._id} className={`promotion-row ${statusClass}`}>
                         <td>
                           <div className="promotion-info">
                             <div className="promotion-header">
@@ -602,6 +665,27 @@ const ListPromotionPage = () => {
                                 ? `${promotion.description.substring(0, 60)}...`
                                 : promotion.description}
                             </p>
+                          </div>
+                        </td>
+                        <td>
+                          <div className="type-visibility-info">
+                            <div className="promotion-type">
+                              <Badge
+                                bg={promotion.type === 'PUBLIC' ? 'primary' : 'warning'}
+                                className="type-badge"
+                              >
+                                {promotion.type === 'PUBLIC' ? (
+                                  <>🌍 PUBLIC</>
+                                ) : (
+                                  <>🔒 PRIVATE</>
+                                )}
+                              </Badge>
+                            </div>
+                            <div className="visibility-description">
+                              {promotion.type === 'PUBLIC'
+                                ? 'Visible to all users'
+                                : 'Code-only access'}
+                            </div>
                           </div>
                         </td>
                         <td>
@@ -703,6 +787,15 @@ const ListPromotionPage = () => {
                               ) : (
                                 promotion.isActive ? <FaToggleOn /> : <FaToggleOff />
                               )}
+                            </Button>
+                            <Button
+                              variant="outline-primary"
+                              size="sm"
+                              onClick={() => handleViewUsers(promotion)}
+                              className="action-btn users-btn"
+                              title="Manage Users"
+                            >
+                              <FaUsers />
                             </Button>
                             <Button
                               variant="outline-danger"
@@ -861,6 +954,13 @@ const ListPromotionPage = () => {
           </Button>
         </Modal.Footer>
       </Modal>
+
+      {/* Promotion Users Modal */}
+      <PromotionUsersModal
+        show={showUsersModal}
+        onHide={() => setShowUsersModal(false)}
+        promotion={selectedPromotionForUsers}
+      />
     </div>
   );
 };

@@ -36,6 +36,25 @@ const PromotionActions = {
   SET_PROMOTION_FILTERS: "SET_PROMOTION_FILTERS",
   SET_PROMOTION_PAGINATION: "SET_PROMOTION_PAGINATION",
   RESET_PROMOTION_FILTERS: "RESET_PROMOTION_FILTERS",
+
+  // Promotion User Management
+  GET_PROMOTION_USERS: "GET_PROMOTION_USERS",
+  GET_PROMOTION_USERS_SUCCESS: "GET_PROMOTION_USERS_SUCCESS",
+  GET_PROMOTION_USERS_FAILURE: "GET_PROMOTION_USERS_FAILURE",
+
+
+
+  GET_USER_PROMOTIONS: "GET_USER_PROMOTIONS",
+  GET_USER_PROMOTIONS_SUCCESS: "GET_USER_PROMOTIONS_SUCCESS",
+  GET_USER_PROMOTIONS_FAILURE: "GET_USER_PROMOTIONS_FAILURE",
+
+  REMOVE_USER_FROM_PROMOTION: "REMOVE_USER_FROM_PROMOTION",
+  REMOVE_USER_FROM_PROMOTION_SUCCESS: "REMOVE_USER_FROM_PROMOTION_SUCCESS",
+  REMOVE_USER_FROM_PROMOTION_FAILURE: "REMOVE_USER_FROM_PROMOTION_FAILURE",
+
+  RESET_USER_PROMOTION_USAGE: "RESET_USER_PROMOTION_USAGE",
+  RESET_USER_PROMOTION_USAGE_SUCCESS: "RESET_USER_PROMOTION_USAGE_SUCCESS",
+  RESET_USER_PROMOTION_USAGE_FAILURE: "RESET_USER_PROMOTION_USAGE_FAILURE",
 };
 
 // Action creators
@@ -145,6 +164,69 @@ export const setPromotionPagination = (pagination) => ({
 
 export const resetPromotionFilters = () => ({
   type: PromotionActions.RESET_PROMOTION_FILTERS
+});
+
+// Promotion User Management Action Creators
+export const getPromotionUsers = (params) => ({
+  type: PromotionActions.GET_PROMOTION_USERS,
+  payload: params
+});
+
+export const getPromotionUsersSuccess = (data) => ({
+  type: PromotionActions.GET_PROMOTION_USERS_SUCCESS,
+  payload: data
+});
+
+export const getPromotionUsersFailure = (error) => ({
+  type: PromotionActions.GET_PROMOTION_USERS_FAILURE,
+  payload: error
+});
+
+
+
+export const getUserPromotions = (params) => ({
+  type: PromotionActions.GET_USER_PROMOTIONS,
+  payload: params
+});
+
+export const getUserPromotionsSuccess = (data) => ({
+  type: PromotionActions.GET_USER_PROMOTIONS_SUCCESS,
+  payload: data
+});
+
+export const getUserPromotionsFailure = (error) => ({
+  type: PromotionActions.GET_USER_PROMOTIONS_FAILURE,
+  payload: error
+});
+
+export const removeUserFromPromotion = (params) => ({
+  type: PromotionActions.REMOVE_USER_FROM_PROMOTION,
+  payload: params
+});
+
+export const removeUserFromPromotionSuccess = (data) => ({
+  type: PromotionActions.REMOVE_USER_FROM_PROMOTION_SUCCESS,
+  payload: data
+});
+
+export const removeUserFromPromotionFailure = (error) => ({
+  type: PromotionActions.REMOVE_USER_FROM_PROMOTION_FAILURE,
+  payload: error
+});
+
+export const resetUserPromotionUsage = (params) => ({
+  type: PromotionActions.RESET_USER_PROMOTION_USAGE,
+  payload: params
+});
+
+export const resetUserPromotionUsageSuccess = (data) => ({
+  type: PromotionActions.RESET_USER_PROMOTION_USAGE_SUCCESS,
+  payload: data
+});
+
+export const resetUserPromotionUsageFailure = (error) => ({
+  type: PromotionActions.RESET_USER_PROMOTION_USAGE_FAILURE,
+  payload: error
 });
 
 export default PromotionActions;

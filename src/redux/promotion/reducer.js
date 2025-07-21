@@ -23,8 +23,8 @@ const initialState = {
   filters: {
     search: '',
     status: 'all',
-    sortBy: 'createdAt',
-    sortOrder: 'desc'
+    sortBy: 'status',
+    sortOrder: 'asc'
   },
 
   // Statistics
@@ -34,7 +34,49 @@ const initialState = {
     upcoming: 0,
     inactive: 0,
     expired: 0
-  }
+  },
+
+  // Promotion User Management
+  promotionUsers: {
+    data: [],
+    loading: false,
+    error: null,
+    pagination: {
+      currentPage: 1,
+      totalPages: 1,
+      totalUsers: 0,
+      limit: 20,
+      hasNextPage: false,
+      hasPrevPage: false
+    },
+    filters: {
+      search: '',
+      status: 'all',
+      sortBy: 'claimedAt',
+      sortOrder: 'desc'
+    }
+  },
+
+
+
+  userPromotions: {
+    data: [],
+    user: null,
+    loading: false,
+    error: null,
+    pagination: {
+      currentPage: 1,
+      totalPages: 1,
+      totalPromotions: 0,
+      limit: 20,
+      hasNextPage: false,
+      hasPrevPage: false
+    }
+  },
+
+  // Loading states for user management actions
+  removingUser: false,
+  resettingUsage: false
 };
 
 const promotionReducer = (state = initialState, action) => {
@@ -240,6 +282,147 @@ const promotionReducer = (state = initialState, action) => {
           currentPage: 1,
         },
       };
+
+    // ===== PROMOTION USER MANAGEMENT =====
+
+    // Get promotion users
+    case PromotionActions.GET_PROMOTION_USERS:
+      return {
+        ...state,
+        promotionUsers: {
+          ...state.promotionUsers,
+          loading: true,
+          error: null,
+        },
+      };
+
+    case PromotionActions.GET_PROMOTION_USERS_SUCCESS:
+      return {
+        ...state,
+        promotionUsers: {
+          ...state.promotionUsers,
+          loading: false,
+          data: action.payload.data.users || [],
+          pagination: {
+            ...state.promotionUsers.pagination,
+            ...action.payload.data.pagination,
+          },
+          filters: {
+            ...state.promotionUsers.filters,
+            ...action.payload.data.filters,
+          },
+          error: null,
+        },
+      };
+
+    case PromotionActions.GET_PROMOTION_USERS_FAILURE:
+      return {
+        ...state,
+        promotionUsers: {
+          ...state.promotionUsers,
+          loading: false,
+          error: action.payload,
+        },
+      };
+
+    // Get user promotions
+    case PromotionActions.GET_USER_PROMOTIONS:
+      return {
+        ...state,
+        userPromotions: {
+          ...state.userPromotions,
+          loading: true,
+          error: null,
+        },
+      };
+
+    case PromotionActions.GET_USER_PROMOTIONS_SUCCESS:
+      return {
+        ...state,
+        userPromotions: {
+          ...state.userPromotions,
+          loading: false,
+          data: action.payload.data.promotions || [],
+          user: action.payload.data.user,
+          pagination: {
+            ...state.userPromotions.pagination,
+            ...action.payload.data.pagination,
+          },
+          error: null,
+        },
+      };
+
+    case PromotionActions.GET_USER_PROMOTIONS_FAILURE:
+      return {
+        ...state,
+        userPromotions: {
+          ...state.userPromotions,
+          loading: false,
+          error: action.payload,
+        },
+      };
+
+    // Remove user from promotion
+    case PromotionActions.REMOVE_USER_FROM_PROMOTION:
+      return {
+        ...state,
+        removingUser: true,
+        error: null,
+      };
+
+    case PromotionActions.REMOVE_USER_FROM_PROMOTION_SUCCESS:
+      return {
+        ...state,
+        removingUser: false,
+        // Remove user from promotionUsers data
+        promotionUsers: {
+          ...state.promotionUsers,
+          data: state.promotionUsers.data.filter(
+            user => user._id !== action.payload.removedUserId
+          ),
+        },
+        error: null,
+      };
+
+    case PromotionActions.REMOVE_USER_FROM_PROMOTION_FAILURE:
+      return {
+        ...state,
+        removingUser: false,
+        error: action.payload,
+      };
+
+    // Reset user promotion usage
+    case PromotionActions.RESET_USER_PROMOTION_USAGE:
+      return {
+        ...state,
+        resettingUsage: true,
+        error: null,
+      };
+
+    case PromotionActions.RESET_USER_PROMOTION_USAGE_SUCCESS:
+      return {
+        ...state,
+        resettingUsage: false,
+        // Update user in promotionUsers data
+        promotionUsers: {
+          ...state.promotionUsers,
+          data: state.promotionUsers.data.map(user =>
+            user._id === action.payload.data.promotionUser._id
+              ? { ...user, usedCount: 0, lastUsedAt: null }
+              : user
+          ),
+        },
+        error: null,
+      };
+
+    case PromotionActions.RESET_USER_PROMOTION_USAGE_FAILURE:
+      return {
+        ...state,
+        resettingUsage: false,
+        error: action.payload,
+      };
+
+
 
     default:
       return state;
