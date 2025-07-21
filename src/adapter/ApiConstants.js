@@ -85,6 +85,14 @@ const ApiConstants = {
   DELETE_PROMOTION: "/promotions/:id",
   GET_PROMOTION_BY_ID: "/promotions/:id",
   TOGGLE_PROMOTION_STATUS: "/promotions/:id/status",
+
+  // PROMOTION USER MANAGEMENT (Admin)
+  GET_PROMOTION_USERS: "/promotions/:id/users",
+  GET_USER_PROMOTIONS: "/promotions/users/:userId",
+  REMOVE_USER_FROM_PROMOTION: "/promotions/:id/users/:userId",
+  RESET_USER_PROMOTION_USAGE: "/promotions/:id/users/:userId/reset",
+
+
   GET_ALL_REFUND: "/payment/getAllRefund",
   REFUND:"payment/stripe-refund/:id",
   // CUSTOMER MANAGEMENT (Admin)

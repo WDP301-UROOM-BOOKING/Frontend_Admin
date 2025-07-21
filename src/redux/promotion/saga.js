@@ -12,6 +12,14 @@ import PromotionActions, {
   getPromotionByIdFailure,
   togglePromotionStatusSuccess,
   togglePromotionStatusFailure,
+  getPromotionUsersSuccess,
+  getPromotionUsersFailure,
+  getUserPromotionsSuccess,
+  getUserPromotionsFailure,
+  removeUserFromPromotionSuccess,
+  removeUserFromPromotionFailure,
+  resetUserPromotionUsageSuccess,
+  resetUserPromotionUsageFailure,
 } from "./actions";
 import Factories from "./factories";
 
@@ -189,6 +197,126 @@ function* togglePromotionStatus() {
   });
 }
 
+// ===== PROMOTION USER MANAGEMENT SAGAS =====
+
+// 6. Get promotion users
+function* getPromotionUsers() {
+  yield takeEvery(PromotionActions.GET_PROMOTION_USERS, function* (action) {
+    const { promotionId, params, onSuccess, onFailed, onError } = action.payload || {};
+
+    try {
+      console.log("🔄 Redux Saga: Getting promotion users...", { promotionId, params });
+      const response = yield call(() => Factories.getPromotionUsers(promotionId, params));
+      console.log("✅ Redux Saga: Get Promotion Users Response:", response);
+
+      if (response?.status === 200) {
+        yield put(getPromotionUsersSuccess(response.data));
+        onSuccess && onSuccess(response.data);
+      }
+    } catch (error) {
+      console.error("❌ Redux Saga: Error getting promotion users:", error);
+      const errorMessage = error.response?.data?.message || error.message || "Failed to get promotion users";
+      yield put(getPromotionUsersFailure(errorMessage));
+
+      const status = error.response?.status;
+      if (status >= 500) {
+        onError && onError(error);
+      } else {
+        onFailed && onFailed(errorMessage);
+      }
+    }
+  });
+}
+
+// 7. Get user promotions
+function* getUserPromotions() {
+  yield takeEvery(PromotionActions.GET_USER_PROMOTIONS, function* (action) {
+    const { userId, params, onSuccess, onFailed, onError } = action.payload || {};
+
+    try {
+      console.log("🔄 Redux Saga: Getting user promotions...", { userId, params });
+      const response = yield call(() => Factories.getUserPromotions(userId, params));
+      console.log("✅ Redux Saga: Get User Promotions Response:", response);
+
+      if (response?.status === 200) {
+        yield put(getUserPromotionsSuccess(response.data));
+        onSuccess && onSuccess(response.data);
+      }
+    } catch (error) {
+      console.error("❌ Redux Saga: Error getting user promotions:", error);
+      const errorMessage = error.response?.data?.message || error.message || "Failed to get user promotions";
+      yield put(getUserPromotionsFailure(errorMessage));
+
+      const status = error.response?.status;
+      if (status >= 500) {
+        onError && onError(error);
+      } else {
+        onFailed && onFailed(errorMessage);
+      }
+    }
+  });
+}
+
+// 9. Remove user from promotion
+function* removeUserFromPromotion() {
+  yield takeEvery(PromotionActions.REMOVE_USER_FROM_PROMOTION, function* (action) {
+    const { promotionId, userId, onSuccess, onFailed, onError } = action.payload || {};
+
+    try {
+      console.log("🔄 Redux Saga: Removing user from promotion...", { promotionId, userId });
+      const response = yield call(() => Factories.removeUserFromPromotion(promotionId, userId));
+      console.log("✅ Redux Saga: Remove User Response:", response);
+
+      if (response?.status === 200) {
+        yield put(removeUserFromPromotionSuccess({ ...response.data, removedUserId: userId }));
+        onSuccess && onSuccess(response.data);
+      }
+    } catch (error) {
+      console.error("❌ Redux Saga: Error removing user from promotion:", error);
+      const errorMessage = error.response?.data?.message || error.message || "Failed to remove user from promotion";
+      yield put(removeUserFromPromotionFailure(errorMessage));
+
+      const status = error.response?.status;
+      if (status >= 500) {
+        onError && onError(error);
+      } else {
+        onFailed && onFailed(errorMessage);
+      }
+    }
+  });
+}
+
+// 10. Reset user promotion usage
+function* resetUserPromotionUsage() {
+  yield takeEvery(PromotionActions.RESET_USER_PROMOTION_USAGE, function* (action) {
+    const { promotionId, userId, onSuccess, onFailed, onError } = action.payload || {};
+
+    try {
+      console.log("🔄 Redux Saga: Resetting user promotion usage...", { promotionId, userId });
+      const response = yield call(() => Factories.resetUserPromotionUsage(promotionId, userId));
+      console.log("✅ Redux Saga: Reset Usage Response:", response);
+
+      if (response?.status === 200) {
+        yield put(resetUserPromotionUsageSuccess(response.data));
+        onSuccess && onSuccess(response.data);
+      }
+    } catch (error) {
+      console.error("❌ Redux Saga: Error resetting user promotion usage:", error);
+      const errorMessage = error.response?.data?.message || error.message || "Failed to reset user promotion usage";
+      yield put(resetUserPromotionUsageFailure(errorMessage));
+
+      const status = error.response?.status;
+      if (status >= 500) {
+        onError && onError(error);
+      } else {
+        onFailed && onFailed(errorMessage);
+      }
+    }
+  });
+}
+
+
+
 export default function* promotionSaga() {
   yield all([
     fork(fetchAllPromotions),
@@ -197,5 +325,9 @@ export default function* promotionSaga() {
     fork(deletePromotion),
     fork(getPromotionById),
     fork(togglePromotionStatus),
+    fork(getPromotionUsers),
+    fork(getUserPromotions),
+    fork(removeUserFromPromotion),
+    fork(resetUserPromotionUsage),
   ]);
 }
