@@ -3,7 +3,6 @@ import {
   Row,
   Col,
   Card,
-  Button,
   Badge,
   Tab,
   Table,
@@ -23,7 +22,24 @@ import {
   FaRegStar, FaStarHalfAlt, FaArrowLeft } from "react-icons/fa";
 import ListFeedbackAdminPage from "../feedback/ListFeedbackAdminPage";
 import { useNavigate } from "react-router-dom";
-import { Form } from "react-bootstrap";
+import { Modal, Button, Form } from 'react-bootstrap';
+import ButtonGroup from 'react-bootstrap/ButtonGroup';
+import ToggleButton from 'react-bootstrap/ToggleButton';
+import ApiConstants from '../../adapter/ApiConstants';
+
+const LOCK_REASONS = [
+  "Spam/quảng cáo (Spam/Advertisement)",
+  "Lừa đảo/thông tin giả (Fraud/Fake Information)",
+  "Vi phạm điều khoản sử dụng (Violation of Terms)",
+  "Hành vi không phù hợp (Inappropriate Behavior)",
+  "Yêu cầu của pháp luật (Legal Requirement)"
+];
+const LOCK_DURATIONS = [
+  { label: "7 ngày", value: "7" },
+  { label: "14 ngày", value: "14" },
+  { label: "30 ngày", value: "30" },
+  { label: "Vĩnh viễn", value: "permanent" }
+];
 
 const renderStars = (rating) => {
   const stars = [];
@@ -41,10 +57,17 @@ const renderStars = (rating) => {
 
 const DetailHotelHostAdmin = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState("info");
+  const [activeTab, setActiveTabLocal] = useState("info");
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [payments, setPayments] = useState([]);
+  // Host state
+  const [host, setHost] = useState(null);
+  // Lock/unlock modal state
+  const [showLockReasonModal, setShowLockReasonModal] = useState(false);
+  const [lockReason, setLockReason] = useState(LOCK_REASONS[0]);
+  const [lockDuration, setLockDuration] = useState(LOCK_DURATIONS[0].value);
+  const [showAcceptModal, setShowAcceptModal] = useState(false);
   const months = [
     "January",
     "February",
@@ -84,6 +107,77 @@ const DetailHotelHostAdmin = () => {
     0
   );
 
+
+  useEffect(() => {
+    // Load selected host from localStorage
+    const stored = localStorage.getItem('selectedHotelHostAdmin');
+    if (stored) {
+      setHost(JSON.parse(stored));
+    }
+  }, []);
+
+  // Lock host
+  const handleConfirmLock = async () => {
+    if (!host) return;
+    const token = localStorage.getItem("token");
+    const url = `http://localhost:5000/api${ApiConstants.LOCK_CUSTOMER.replace(":id", host._id)}`;
+    const res = await fetch(url, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        reasonLocked: lockReason,
+        lockDuration: lockDuration
+      })
+    });
+    const data = await res.json();
+    if (data && data.data) {
+      setHost(data.data);
+      localStorage.setItem('selectedHotelHostAdmin', JSON.stringify(data.data));
+    } else {
+      setHost(prev => ({ ...prev, status: 'LOCK', isLocked: true }));
+    }
+    setShowLockReasonModal(false);
+  };
+  // Unlock host
+  const handleUnlockHost = async () => {
+    if (!host) return;
+    const token = localStorage.getItem("token");
+    const url = `http://localhost:5000/api${ApiConstants.UNLOCK_CUSTOMER.replace(":id", host._id)}`;
+    const res = await fetch(url, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
+    const data = await res.json();
+    if (data && data.data) {
+      setHost(data.data);
+      localStorage.setItem('selectedHotelHostAdmin', JSON.stringify(data.data));
+    } else {
+      setHost(prev => ({ ...prev, status: 'ACTIVE', isLocked: false }));
+    }
+    setShowAcceptModal(false);
+  };
+
+  // Countdown logic
+  let unlockCountdown = null;
+  if (host && host.lockDuration && host.lockDuration !== 'permanent' && host.lockExpiresAt) {
+    const now = new Date();
+    const expires = new Date(host.lockExpiresAt);
+    const diffMs = expires - now;
+    if (diffMs > 0) {
+      const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+      const diffHours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+      unlockCountdown = `${diffDays > 0 ? diffDays + ' ngày, ' : ''}${diffHours} giờ, ${diffMinutes} phút`;
+    } else {
+      unlockCountdown = 'Sắp được mở khóa tự động';
+    }
+  }
 
   useEffect(() => {
     // Simulate API call
@@ -147,7 +241,20 @@ const DetailHotelHostAdmin = () => {
                 Account management
               </Card.Header>
               <Card.Body className="text-center">
-                <Button variant="dark">Lock</Button>
+                {host && !host.isLocked && (
+                  <Button variant="danger" onClick={() => {
+                    setLockReason(LOCK_REASONS[0]);
+                    setLockDuration(LOCK_DURATIONS[0].value);
+                    setShowLockReasonModal(true);
+                  }}>
+                    Lock
+                  </Button>
+                )}
+                {host && host.isLocked && (
+                  <Button variant="success" onClick={() => setShowAcceptModal(true)}>
+                    Unlock
+                  </Button>
+                )}
               </Card.Body>
             </Card>
           </Col>
@@ -161,9 +268,11 @@ const DetailHotelHostAdmin = () => {
                 Status Hotel
               </Card.Header>
               <Card.Body className="text-center">
-                <Button variant="success" disabled>
-                  Active
-                </Button>
+                {host && (
+                  <Button variant={host.isLocked ? "secondary" : "success"} disabled>
+                    {host.isLocked ? "Locked" : "Active"}
+                  </Button>
+                )}
               </Card.Body>
             </Card>
           </Col>
@@ -171,7 +280,7 @@ const DetailHotelHostAdmin = () => {
 
         <Tabs
           activeKey={activeTab}
-          onSelect={setActiveTab}
+          onSelect={setActiveTabLocal}
           className="mb-4 mt-3 gap-3"
           variant="pills"
         >
@@ -487,6 +596,78 @@ const DetailHotelHostAdmin = () => {
             <ListFeedbackAdminPage />
           </Tab>
         </Tabs>
+        {/* Lock Reason Modal */}
+        <Modal show={showLockReasonModal} onHide={() => setShowLockReasonModal(false)} centered>
+          <Modal.Header closeButton>
+            <Modal.Title>Chọn lý do và mức độ khóa tài khoản</Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            <Form>
+              <Form.Group className="mb-3">
+                <Form.Label>Lý do khóa</Form.Label>
+                <Form.Select value={lockReason} onChange={e => setLockReason(e.target.value)}>
+                  {LOCK_REASONS.map(reason => (
+                    <option key={reason} value={reason}>{reason}</option>
+                  ))}
+                </Form.Select>
+              </Form.Group>
+              <Form.Group>
+                <Form.Label>Mức độ khóa</Form.Label>
+                <div className="d-flex justify-content-center mt-2">
+                  <ButtonGroup>
+                    {LOCK_DURATIONS.map(opt => (
+                      <ToggleButton
+                        key={opt.value}
+                        id={`lock-duration-${opt.value}`}
+                        type="radio"
+                        variant={lockDuration === opt.value ? "danger" : "outline-secondary"}
+                        name="lockDuration"
+                        value={opt.value}
+                        checked={lockDuration === opt.value}
+                        onChange={e => setLockDuration(e.currentTarget.value)}
+                        className="mx-1"
+                      >
+                        {opt.label}
+                      </ToggleButton>
+                    ))}
+                  </ButtonGroup>
+                </div>
+              </Form.Group>
+            </Form>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button variant="secondary" onClick={() => setShowLockReasonModal(false)}>
+              Hủy
+            </Button>
+            <Button variant="danger" onClick={handleConfirmLock}>
+              Xác nhận khóa
+            </Button>
+          </Modal.Footer>
+        </Modal>
+        {/* Accept Confirmation Modal */}
+        <Modal show={showAcceptModal} onHide={() => setShowAcceptModal(false)} centered>
+          <Modal.Header closeButton>
+            <Modal.Title>Xác nhận mở khóa tài khoản</Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            {host && host.lockDuration && host.lockDuration !== 'permanent' && unlockCountdown
+              ? (
+                  <>
+                    <div>Tài khoản này sẽ tự động được mở khóa sau: <b>{unlockCountdown}</b></div>
+                    <div>Bạn có chắc chắn rằng muốn mở khóa ngay bây giờ không?</div>
+                  </>
+                )
+              : "Bạn có chắc chắn muốn mở khóa tài khoản này không?"}
+          </Modal.Body>
+          <Modal.Footer>
+            <Button variant="secondary" onClick={() => setShowAcceptModal(false)}>
+              Hủy
+            </Button>
+            <Button variant="success" onClick={handleUnlockHost}>
+              Xác nhận mở khóa
+            </Button>
+          </Modal.Footer>
+        </Modal>
       </div>
     </div>
   );

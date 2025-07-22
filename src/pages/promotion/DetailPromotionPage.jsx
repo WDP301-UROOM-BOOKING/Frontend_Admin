@@ -9,6 +9,7 @@ import {
   Badge,
   Card,
   InputGroup,
+
 } from "react-bootstrap";
 import {
   FaPercentage,
@@ -17,6 +18,7 @@ import {
   FaSave,
   FaTimes,
   FaInfoCircle,
+  FaEdit,
 } from "react-icons/fa";
 
 const DetailPromotionPage = ({ show, onHide, promotion, onSave, mode = "view" }) => {
@@ -31,6 +33,8 @@ const DetailPromotionPage = ({ show, onHide, promotion, onSave, mode = "view" })
     startDate: "",
     endDate: "",
     usageLimit: "",
+    maxUsagePerUser: "",
+    type: "PUBLIC",
     isActive: true,
   });
 
@@ -50,6 +54,8 @@ const DetailPromotionPage = ({ show, onHide, promotion, onSave, mode = "view" })
         startDate: promotion.startDate ? promotion.startDate.split('T')[0] : "",
         endDate: promotion.endDate ? promotion.endDate.split('T')[0] : "",
         usageLimit: promotion.usageLimit || "",
+        maxUsagePerUser: promotion.maxUsagePerUser || "",
+        type: promotion.type || "PUBLIC",
         isActive: promotion.isActive !== undefined ? promotion.isActive : true,
       });
     } else if (mode === "add") {
@@ -64,6 +70,8 @@ const DetailPromotionPage = ({ show, onHide, promotion, onSave, mode = "view" })
         startDate: "",
         endDate: "",
         usageLimit: "",
+        maxUsagePerUser: "",
+        type: "PUBLIC",
         isActive: true,
       });
     }
@@ -156,6 +164,7 @@ const DetailPromotionPage = ({ show, onHide, promotion, onSave, mode = "view" })
         maxDiscountAmount: formData.maxDiscountAmount ? parseFloat(formData.maxDiscountAmount) : null,
         minOrderAmount: formData.minOrderAmount ? parseFloat(formData.minOrderAmount) : 0,
         usageLimit: formData.usageLimit ? parseInt(formData.usageLimit) : null,
+        maxUsagePerUser: formData.maxUsagePerUser ? parseInt(formData.maxUsagePerUser) : 1,
       };
 
       await onSave(submitData);
@@ -290,6 +299,31 @@ const DetailPromotionPage = ({ show, onHide, promotion, onSave, mode = "view" })
                       </Badge>
                     </div>
                   )}
+                </Card.Body>
+              </Card>
+            </Col>
+
+            {/* Promotion Type */}
+            <Col md={6}>
+              <Card className="mb-3">
+                <Card.Header>
+                  <h6 className="mb-0">Promotion Type</h6>
+                </Card.Header>
+                <Card.Body>
+                  <Form.Group className="mb-0">
+                    <Form.Label>Visibility *</Form.Label>
+                    <Form.Select
+                      value={formData.type}
+                      onChange={(e) => handleInputChange("type", e.target.value)}
+                      disabled={isReadOnly}
+                    >
+                      <option value="PUBLIC">Public - Visible in promotion list</option>
+                      <option value="PRIVATE">Private - Only accessible by code</option>
+                    </Form.Select>
+                    <Form.Text className="text-muted">
+                      Public promotions appear in the promotion modal. Private promotions can only be claimed by entering the code manually.
+                    </Form.Text>
+                  </Form.Group>
                 </Card.Body>
               </Card>
             </Col>
@@ -442,8 +476,8 @@ const DetailPromotionPage = ({ show, onHide, promotion, onSave, mode = "view" })
                   <h6 className="mb-0">Usage Limits</h6>
                 </Card.Header>
                 <Card.Body>
-                  <Form.Group className="mb-0">
-                    <Form.Label>Usage Limit</Form.Label>
+                  <Form.Group className="mb-3">
+                    <Form.Label>Total Usage Limit</Form.Label>
                     <Form.Control
                       type="number"
                       min="1"
@@ -457,7 +491,26 @@ const DetailPromotionPage = ({ show, onHide, promotion, onSave, mode = "view" })
                       {errors.usageLimit}
                     </Form.Control.Feedback>
                     <Form.Text className="text-muted">
-                      Maximum number of times this promotion can be used
+                      Maximum number of times this promotion can be used in total
+                    </Form.Text>
+                  </Form.Group>
+
+                  <Form.Group className="mb-0">
+                    <Form.Label>Max Usage Per User</Form.Label>
+                    <Form.Control
+                      type="number"
+                      min="1"
+                      value={formData.maxUsagePerUser}
+                      onChange={(e) => handleInputChange("maxUsagePerUser", e.target.value)}
+                      isInvalid={!!errors.maxUsagePerUser}
+                      disabled={isReadOnly}
+                      placeholder="1"
+                    />
+                    <Form.Control.Feedback type="invalid">
+                      {errors.maxUsagePerUser}
+                    </Form.Control.Feedback>
+                    <Form.Text className="text-muted">
+                      Maximum number of times each user can use this promotion
                     </Form.Text>
                   </Form.Group>
                 </Card.Body>
@@ -489,7 +542,9 @@ const DetailPromotionPage = ({ show, onHide, promotion, onSave, mode = "view" })
                     {formData.minOrderAmount > 0 && (
                       <p><strong>Min Order:</strong> {formatCurrency(formData.minOrderAmount)}</p>
                     )}
-                    <p><strong>Usage Limit:</strong> {formData.usageLimit || "Unlimited"}</p>
+                    <p><strong>Total Usage Limit:</strong> {formData.usageLimit || "Unlimited"}</p>
+                    <p><strong>Max Usage Per User:</strong> {formData.maxUsagePerUser || "1"}</p>
+                    <p><strong>Type:</strong> <Badge bg={formData.type === 'PUBLIC' ? 'success' : 'warning'}>{formData.type}</Badge></p>
                   </Col>
                 </Row>
               </Card.Body>

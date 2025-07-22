@@ -12,6 +12,24 @@ import {
 import { Calendar, Lock, Unlock } from "lucide-react";
 import "bootstrap/dist/css/bootstrap.min.css";
 import ConfirmationModal from "@components/ConfirmationModal";
+import ApiConstants from "../../adapter/ApiConstants";
+import { useRef } from "react";
+import ButtonGroup from "react-bootstrap/ButtonGroup";
+import ToggleButton from "react-bootstrap/ToggleButton";
+
+const LOCK_REASONS = [
+  "Spam/quảng cáo (Spam/Advertisement)",
+  "Lừa đảo/thông tin giả (Fraud/Fake Information)",
+  "Vi phạm điều khoản sử dụng (Violation of Terms)",
+  "Hành vi không phù hợp (Inappropriate Behavior)",
+  "Yêu cầu của pháp luật (Legal Requirement)"
+];
+const LOCK_DURATIONS = [
+  { label: "7 ngày", value: "7" },
+  { label: "14 ngày", value: "14" },
+  { label: "30 ngày", value: "30" },
+  { label: "Vĩnh viễn", value: "permanent" }
+];
 
 export default function CustomerDetail({ show, handleClose, customer, onLockChange }) {
   // State to control the avatar modal
@@ -23,18 +41,35 @@ export default function CustomerDetail({ show, handleClose, customer, onLockChan
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showAcceptModal, setShowAcceptModal] = useState(false);
 
+  // State cho modal lý do/mức độ lock
+  const [showLockReasonModal, setShowLockReasonModal] = useState(false);
+  const [lockReason, setLockReason] = useState(LOCK_REASONS[0]);
+  const [lockDuration, setLockDuration] = useState(LOCK_DURATIONS[0].value);
+
   // Hàm lock
   const handleLockCustomer = async () => {
     if (!customer) return;
+    setShowDeleteModal(false);
+    setShowLockReasonModal(true);
+  };
+
+  // Xác nhận lock với lý do và mức độ
+  const handleConfirmLock = async () => {
+    if (!customer) return;
     const token = localStorage.getItem("token");
-    await fetch(`http://localhost:5000/api/auth/lock-customer/${customer._id}`, {
+    const url = `http://localhost:5000/api${ApiConstants.LOCK_CUSTOMER.replace(":id", customer._id)}`;
+    await fetch(url, {
       method: "PUT",
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
+      body: JSON.stringify({
+        reasonLocked: lockReason,
+        lockDuration: lockDuration
+      })
     });
-    setShowDeleteModal(false);
+    setShowLockReasonModal(false);
     if (onLockChange) onLockChange(customer._id, true);
     handleClose();
   };
@@ -42,7 +77,8 @@ export default function CustomerDetail({ show, handleClose, customer, onLockChan
   const handleUnlockCustomer = async () => {
     if (!customer) return;
     const token = localStorage.getItem("token");
-    await fetch(`http://localhost:5000/api/auth/unlock-customer/${customer._id}`, {
+    const url = `http://localhost:5000/api${ApiConstants.UNLOCK_CUSTOMER.replace(":id", customer._id)}`;
+    await fetch(url, {
       method: "PUT",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -54,9 +90,26 @@ export default function CustomerDetail({ show, handleClose, customer, onLockChan
     handleClose();
   };
 
+  // Tính thời gian còn lại (nếu có)
+  let unlockCountdown = null;
+  if (customer && customer.lockDuration && customer.lockDuration !== 'permanent' && customer.lockExpiresAt) {
+    const now = new Date();
+    const expires = new Date(customer.lockExpiresAt);
+    const diffMs = expires - now;
+    if (diffMs > 0) {
+      const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+      const diffHours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+      unlockCountdown = `${diffDays > 0 ? diffDays + ' ngày, ' : ''}${diffHours} giờ, ${diffMinutes} phút`;
+    } else {
+      unlockCountdown = 'Sắp được mở khóa tự động';
+    }
+  }
+
   if (!customer) return null;
 
   return (
+    <>
     <Modal show={show} onHide={handleClose} size="xl">
       <Container className="py-4">
         <div className="d-flex flex-column gap-4">
@@ -68,7 +121,11 @@ export default function CustomerDetail({ show, handleClose, customer, onLockChan
                   variant="outline-danger"
                   className="d-flex align-items-center gap-2"
                   style={{ width: "100px" }}
-                  onClick={() => setShowDeleteModal(true)}
+                    onClick={() => {
+                      setLockReason(LOCK_REASONS[0]);
+                      setLockDuration(LOCK_DURATIONS[0].value);
+                      setShowLockReasonModal(true);
+                    }}
                 >
                   <Lock size={16} />
                   Lock
@@ -232,6 +289,8 @@ export default function CustomerDetail({ show, handleClose, customer, onLockChan
             </Card.Body>
           </Card>
         </div>
+        </Container>
+      </Modal>
 
         {/* Avatar Modal */}
         <Modal
@@ -257,17 +316,55 @@ export default function CustomerDetail({ show, handleClose, customer, onLockChan
             </Button>
           </Modal.Footer>
         </Modal>
-      </Container>
-      {/* Delete Confirmation Modal */}
-      <ConfirmationModal
-        show={showDeleteModal}
-        onHide={() => setShowDeleteModal(false)}
-        onConfirm={handleLockCustomer}
-        title="Confirm Lock Customer"
-        message="Are you sure you want to lock this customer ?"
-        confirmButtonText="Confirm"
-        type="danger"
-      />
+
+      {/* Modal chọn lý do và mức độ lock */}
+      <Modal show={showLockReasonModal} onHide={() => setShowLockReasonModal(false)} centered>
+        <Modal.Header closeButton>
+          <Modal.Title>Chọn lý do và mức độ khóa tài khoản</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form>
+            <Form.Group className="mb-3">
+              <Form.Label>Lý do khóa</Form.Label>
+              <Form.Select value={lockReason} onChange={e => setLockReason(e.target.value)}>
+                {LOCK_REASONS.map(reason => (
+                  <option key={reason} value={reason}>{reason}</option>
+                ))}
+              </Form.Select>
+            </Form.Group>
+            <Form.Group>
+              <Form.Label>Mức độ khóa</Form.Label>
+              <div className="d-flex justify-content-center mt-2">
+                <ButtonGroup>
+                  {LOCK_DURATIONS.map(opt => (
+                    <ToggleButton
+                      key={opt.value}
+                      id={`lock-duration-${opt.value}`}
+                      type="radio"
+                      variant={lockDuration === opt.value ? "danger" : "outline-secondary"}
+                      name="lockDuration"
+                      value={opt.value}
+                      checked={lockDuration === opt.value}
+                      onChange={e => setLockDuration(e.currentTarget.value)}
+                      className="mx-1"
+                    >
+                      {opt.label}
+                    </ToggleButton>
+                  ))}
+                </ButtonGroup>
+              </div>
+            </Form.Group>
+          </Form>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowLockReasonModal(false)}>
+            Hủy
+          </Button>
+          <Button variant="danger" onClick={handleConfirmLock}>
+            Xác nhận khóa
+          </Button>
+        </Modal.Footer>
+      </Modal>
 
       {/* Accept Confirmation Modal */}
       <ConfirmationModal
@@ -275,10 +372,19 @@ export default function CustomerDetail({ show, handleClose, customer, onLockChan
         onHide={() => setShowAcceptModal(false)}
         onConfirm={handleUnlockCustomer}
         title="Confirm Unlock Customer"
-        message="Are you sure you want to unlock this customer ?"
+        message={
+          customer && customer.lockDuration && customer.lockDuration !== 'permanent' && unlockCountdown
+            ? (
+                <>
+                  <div>Tài khoản này sẽ tự động được mở khóa sau: <b>{unlockCountdown}</b></div>
+                  <div>Bạn có chắc chắn rằng muốn mở khóa ngay bây giờ không?</div>
+                </>
+              )
+            : "Are you sure you want to unlock this customer?"
+        }
         confirmButtonText="Confirm"
         type="accept"
       />
-    </Modal>
+    </>
   );
 }
