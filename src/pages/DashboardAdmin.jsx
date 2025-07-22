@@ -37,6 +37,7 @@ import { ToastProvider } from "../components/ToastContainer";
 import Chat from "./messenger/Chat";
 import ListPaymentCustomer from "./payment/ListPaymentCustomer";
 import ListPromotionPage from "./promotion/ListPromotionPage";
+import AnalystPage from "./analyst/AnalystPage";
 
 ChartJS.register(
   CategoryScale,
@@ -57,12 +58,12 @@ function AdminDashboard() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [isClient, setIsClient] = useState(false);
-  
+
   // Initialize activeTab from URL params or default to "dashboard"
   const [activeTab, setActiveTab] = useState(() => {
     return searchParams.get("tab") || "dashboard";
   });
-  
+
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [notifications, setNotifications] = useState([
@@ -241,7 +242,10 @@ function AdminDashboard() {
                     activeTab === "payments_customer" ? "active" : ""
                   }`}
                 >
-                  <a href="#" onClick={() => handleTabChange("payments_customer")}>
+                  <a
+                    href="#"
+                    onClick={() => handleTabChange("payments_customer")}
+                  >
                     <i className="bi bi-credit-card"></i>
                     <span>Thanh toán khách hàng</span>
                   </a>
@@ -269,6 +273,16 @@ function AdminDashboard() {
                   <a href="#" onClick={() => handleTabChange("messenger")}>
                     <i className="bi bi-chat-dots-fill"></i>
                     <span>Liên hệ khách hàng</span>
+                  </a>
+                </li>
+                <li
+                  className={`menu-item ${
+                    activeTab === "analyst" ? "active" : ""
+                  }`}
+                >
+                  <a href="#" onClick={() => handleTabChange("analyst")}>
+                    <i className="bi bi-graph-up"></i>
+                    <span>Phân tích dữ liệu</span>
                   </a>
                 </li>
               </ul>
@@ -432,11 +446,14 @@ function AdminDashboard() {
             {activeTab === "reports" && <ReportedFeedbackAdmin />}
 
             {/* messenger */}
-            {activeTab === "messenger" && <Chat/>}
+            {activeTab === "messenger" && <Chat />}
 
             {activeTab === "hotel_information" && (
               <DetailHotelHostAdmin setActiveTab={handleTabChange} />
             )}
+            {activeTab === "analyst" && <AnalystPage />}
+
+            {/* Feedbacks */}
           </div>
         </div>
       </div>
