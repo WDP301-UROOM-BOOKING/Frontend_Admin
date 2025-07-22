@@ -32,38 +32,165 @@ ChartJS.register(
 
 const DashboardPage = () => {
   const dispatch = useDispatch();
-  const { data: dashboardData, loading, error } = useSelector(state => state.AdminDashboard);
-  const [selectedPeriod, setSelectedPeriod] = useState('month');
+  const [selectedPeriod, setSelectedPeriod] = useState('week');
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [exportLoading, setExportLoading] = useState(false);
   const [excelExportLoading, setExcelExportLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
+  // Hardcoded fake data based on your requirements
+  const getFakeData = () => {
+    // Base weekly data with date ranges (5 weeks before current week)
+    // Current date: 22/07/2025 (Tuesday), so current week is incomplete
+    const weeklyData = {
+      labels: ['17-23/6', '24-30/6', '1-7/7', '8-14/7', '15-21/7'],
+      datasets: [{
+        label: 'Doanh thu (VND)',
+        data: [5140000, 6180000, 6820000, 6050000, 4090000],
+        borderColor: 'rgb(75, 192, 192)',
+        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+        tension: 0.1
+      }]
+    };
 
+    // Monthly data for recent months only
+    const monthlyData = {
+      labels: ['Tháng 5', 'Tháng 6', 'Tháng 7'],
+      datasets: [{
+        label: 'Doanh thu (VND)',
+        data: [5140000, 6180000, 6820000],
+        borderColor: 'rgb(75, 192, 192)',
+        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+        tension: 0.1
+      }]
+    };
 
-  // Fetch dashboard data on component mount and when period/year changes
-  useEffect(() => {
-    const params = { period: selectedPeriod };
-    if (selectedPeriod === 'month') {
-      params.year = selectedYear;
-    }
+    // Yearly data for 2024-2025 only
+    const yearlyData = {
+      labels: ['2024', '2025'],
+      datasets: [{
+        label: 'Doanh thu (VND)',
+        data: [0, 28280000], // 2024: 0, 2025: 28.28M
+        borderColor: 'rgb(75, 192, 192)',
+        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+        tension: 0.1
+      }]
+    };
 
-    dispatch({
-      type: AdminDashboardActions.FETCH_ADMIN_DASHBOARD_METRICS,
-      payload: {
-        params,
-        onSuccess: (data) => {
-          console.log('Dashboard data loaded successfully:', data);
-          // Set selectedYear to first available year if not set
-          if (data.availableYears && data.availableYears.length > 0 && selectedYear === new Date().getFullYear() && !data.availableYears.includes(selectedYear)) {
-            setSelectedYear(data.availableYears[0]);
-          }
+    return {
+      totalHotels: 158,
+      activeHotels: 142,
+      totalUsers: 267, // Hardcoded as requested
+      totalOwners: 89,
+      totalRevenue: 28300000, // 28.3M VND
+      revenueData: selectedPeriod === 'week' ? weeklyData : selectedPeriod === 'month' ? monthlyData : yearlyData,
+      hotelDistributionData: {
+        labels: ['Hồ Chí Minh', 'Hà Nội', 'Đà Nẵng', 'Hải Phòng', 'Cần Thơ'],
+        datasets: [{
+          data: [45, 38, 32, 28, 15],
+          backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF'],
+          borderWidth: 2
+        }]
+      },
+      hotelCategoryData: {
+        labels: ['Khách sạn 5 sao', 'Khách sạn 4 sao', 'Khách sạn 3 sao', 'Resort', 'Hostel'],
+        datasets: [{
+          data: [25, 42, 58, 18, 15],
+          backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF'],
+          borderWidth: 2
+        }]
+      },
+      locationBreakdown: [
+        {
+          region: 'Hồ Chí Minh',
+          total: 45,
+          active: 42,
+          pending: 3,
+          activePercentage: 93.3
         },
-        onFailed: (error) => {
-          console.error('Failed to load dashboard data:', error);
+        {
+          region: 'Hà Nội',
+          total: 38,
+          active: 35,
+          pending: 3,
+          activePercentage: 92.1
+        },
+        {
+          region: 'Đà Nẵng',
+          total: 32,
+          active: 28,
+          pending: 4,
+          activePercentage: 87.5
+        },
+        {
+          region: 'Hải Phòng',
+          total: 28,
+          active: 24,
+          pending: 4,
+          activePercentage: 85.7
+        },
+        {
+          region: 'Cần Thơ',
+          total: 15,
+          active: 13,
+          pending: 2,
+          activePercentage: 86.7
         }
-      }
-    });
-  }, [dispatch, selectedPeriod, selectedYear]);
+      ],
+      categoryBreakdown: [
+        {
+          category: 'Khách sạn 5 sao',
+          total: 25,
+          active: 24,
+          pending: 1,
+          avgRating: 4.8,
+          activePercentage: 96.0
+        },
+        {
+          category: 'Khách sạn 4 sao',
+          total: 42,
+          active: 39,
+          pending: 3,
+          avgRating: 4.5,
+          activePercentage: 92.9
+        },
+        {
+          category: 'Khách sạn 3 sao',
+          total: 58,
+          active: 52,
+          pending: 6,
+          avgRating: 4.2,
+          activePercentage: 89.7
+        },
+        {
+          category: 'Resort',
+          total: 18,
+          active: 16,
+          pending: 2,
+          avgRating: 4.6,
+          activePercentage: 88.9
+        },
+        {
+          category: 'Hostel',
+          total: 15,
+          active: 11,
+          pending: 4,
+          avgRating: 3.8,
+          activePercentage: 73.3
+        }
+      ],
+      availableYears: [2024, 2025]
+    };
+  };
+
+  const dashboardData = getFakeData();
+
+  // No need to fetch data anymore - using fake data
+  useEffect(() => {
+    // Just set loading to false since we're using fake data
+    setLoading(false);
+  }, [selectedPeriod, selectedYear]);
 
   // Handle period change
   const handlePeriodChange = (period) => {
@@ -78,11 +205,7 @@ const DashboardPage = () => {
 
   // Calculate total revenue from all available data
   const calculateTotalRevenue = () => {
-    if (!dashboardData?.revenueData?.datasets?.[0]?.data) {
-      return "0";
-    }
-    const totalRevenue = dashboardData.revenueData.datasets[0].data.reduce((sum, value) => sum + (value || 0), 0);
-    return totalRevenue.toLocaleString();
+    return (dashboardData.totalRevenue / 1000000).toFixed(1) + 'M';
   };
 
   // Get revenue breakdown for PDF
@@ -93,28 +216,13 @@ const DashboardPage = () => {
 
     const labels = dashboardData.revenueData.labels;
     const data = dashboardData.revenueData.datasets[0].data;
-    const currentDate = new Date();
-    const currentYear = currentDate.getFullYear();
-    const currentMonth = currentDate.getMonth() + 1; // 1-12
 
     return labels.map((label, index) => {
-      // Parse year and month from label (e.g., "Jan 2025", "Feb 2025")
-      const labelParts = label.split(' ');
-      if (labelParts.length === 2) {
-        const labelYear = parseInt(labelParts[1]);
-        const labelMonth = new Date(`${labelParts[0]} 1, ${labelYear}`).getMonth() + 1;
-
-        // Skip future months in current year
-        if (labelYear === currentYear && labelMonth > currentMonth) {
-          return null; // Will be filtered out
-        }
-      }
-
       return [
         label,
-        `$${(data[index] || 0).toLocaleString()}`
+        `${(data[index] || 0).toLocaleString()} VND`
       ];
-    }).filter(item => item !== null); // Remove null entries
+    });
   };
 
   // Get hotel distribution for PDF
@@ -210,7 +318,7 @@ const DashboardPage = () => {
                 ["Active Hotels", (dashboardData.activeHotels || 0).toString()],
                 ["Total Users", (dashboardData.totalUsers || 0).toString()],
                 ["Total Hotel Hosts", (dashboardData.totalOwners || 0).toString()],
-                ["Total System Revenue", `$${calculateTotalRevenue()}`],
+                ["Total System Revenue", `${calculateTotalRevenue()} VND`],
               ],
             },
             margin: [0, 0, 0, 20],
@@ -226,7 +334,7 @@ const DashboardPage = () => {
             table: {
               widths: ["50%", "50%"],
               body: [
-                ["Period", "Revenue (USD)"],
+                ["Period", "Revenue (VND)"],
                 ...getRevenueBreakdown()
               ],
             },
@@ -416,7 +524,7 @@ const DashboardPage = () => {
         ['Active Hotels', dashboardData.activeHotels || 0],
         ['Total Users', dashboardData.totalUsers || 0],
         ['Hotel Owners', dashboardData.totalOwners || 0],
-        ['Total Revenue', `$${(dashboardData.totalRevenue || 0).toLocaleString()}`]
+        ['Total Revenue', `${(dashboardData.totalRevenue || 0).toLocaleString()} VND`]
       ];
 
       overviewData.forEach(([metric, value]) => {
@@ -471,7 +579,7 @@ const DashboardPage = () => {
       };
 
       const revenueValueHeaderCell = worksheet.getCell(`B${currentRow}`);
-      revenueValueHeaderCell.value = 'Revenue (USD)';
+      revenueValueHeaderCell.value = 'Revenue (VND)';
       revenueValueHeaderCell.font = { bold: true, size: 11 };
       revenueValueHeaderCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2EFDA' } };
       revenueValueHeaderCell.alignment = { horizontal: 'center', vertical: 'middle' };
@@ -481,53 +589,33 @@ const DashboardPage = () => {
       };
       currentRow++;
 
-      // Add revenue data (filter future months)
+      // Add revenue data
       if (dashboardData.revenueData && dashboardData.revenueData.labels) {
-        const currentDate = new Date();
-        const currentYear = currentDate.getFullYear();
-        const currentMonth = currentDate.getMonth() + 1;
-
         dashboardData.revenueData.labels.forEach((label, index) => {
-          // Parse year and month from label (e.g., "Jan 2025", "Feb 2025")
-          const labelParts = label.split(' ');
-          let shouldInclude = true;
+          const amount = dashboardData.revenueData.datasets[0]?.data[index] || 0;
 
-          if (labelParts.length === 2) {
-            const labelYear = parseInt(labelParts[1]);
-            const labelMonth = new Date(`${labelParts[0]} 1, ${labelYear}`).getMonth() + 1;
+          const periodCell = worksheet.getCell(`A${currentRow}`);
+          periodCell.value = label;
+          periodCell.font = { size: 10 };
+          periodCell.alignment = { horizontal: 'left', vertical: 'middle' };
+          periodCell.border = {
+            top: { style: 'thin', color: { argb: 'FFD0D0D0' } },
+            bottom: { style: 'thin', color: { argb: 'FFD0D0D0' } },
+            left: { style: 'thin', color: { argb: 'FFD0D0D0' } },
+            right: { style: 'thin', color: { argb: 'FFD0D0D0' } }
+          };
 
-            // Skip future months in current year
-            if (labelYear === currentYear && labelMonth > currentMonth) {
-              shouldInclude = false;
-            }
-          }
-
-          if (shouldInclude) {
-            const amount = dashboardData.revenueData.datasets[0]?.data[index] || 0;
-
-            const periodCell = worksheet.getCell(`A${currentRow}`);
-            periodCell.value = label;
-            periodCell.font = { size: 10 };
-            periodCell.alignment = { horizontal: 'left', vertical: 'middle' };
-            periodCell.border = {
-              top: { style: 'thin', color: { argb: 'FFD0D0D0' } },
-              bottom: { style: 'thin', color: { argb: 'FFD0D0D0' } },
-              left: { style: 'thin', color: { argb: 'FFD0D0D0' } },
-              right: { style: 'thin', color: { argb: 'FFD0D0D0' } }
-            };
-
-            const amountCell = worksheet.getCell(`B${currentRow}`);
-            amountCell.value = `$${amount.toLocaleString()}`;
-            amountCell.font = { size: 10 };
-            amountCell.alignment = { horizontal: 'left', vertical: 'middle' };
-            amountCell.border = {
-              top: { style: 'thin', color: { argb: 'FFD0D0D0' } },
-              bottom: { style: 'thin', color: { argb: 'FFD0D0D0' } },
-              left: { style: 'thin', color: { argb: 'FFD0D0D0' } },
-              right: { style: 'thin', color: { argb: 'FFD0D0D0' } }
-            };
-            currentRow++;
-          }
+          const amountCell = worksheet.getCell(`B${currentRow}`);
+          amountCell.value = `${amount.toLocaleString()} VND`;
+          amountCell.font = { size: 10 };
+          amountCell.alignment = { horizontal: 'left', vertical: 'middle' };
+          amountCell.border = {
+            top: { style: 'thin', color: { argb: 'FFD0D0D0' } },
+            bottom: { style: 'thin', color: { argb: 'FFD0D0D0' } },
+            left: { style: 'thin', color: { argb: 'FFD0D0D0' } },
+            right: { style: 'thin', color: { argb: 'FFD0D0D0' } }
+          };
+          currentRow++;
         });
       }
 
@@ -890,6 +978,16 @@ const DashboardPage = () => {
             <i className="bi bi-person-badge"></i>
           </div>
         </div>
+
+        <div className="stat-card">
+          <div className="stat-card-content">
+            <h3>28,3M</h3>
+            <p>Tổng doanh thu</p>
+          </div>
+          <div className="stat-card-icon revenue">
+            <i className="bi bi-cash-stack"></i>
+          </div>
+        </div>
       </div>
 
       {/* Revenue Chart */}
@@ -898,6 +996,12 @@ const DashboardPage = () => {
           <h2>Doanh thu hệ thống</h2>
           <div className="chart-actions d-flex gap-2">
             <div className="btn-group">
+              <button
+                className={`btn btn-sm ${selectedPeriod === 'week' ? 'btn-primary' : 'btn-outline-secondary'}`}
+                onClick={() => handlePeriodChange('week')}
+              >
+                Tuần
+              </button>
               <button
                 className={`btn btn-sm ${selectedPeriod === 'month' ? 'btn-primary' : 'btn-outline-secondary'}`}
                 onClick={() => handlePeriodChange('month')}
@@ -944,7 +1048,7 @@ const DashboardPage = () => {
                       drawBorder: false,
                     },
                     ticks: {
-                      callback: (value) => '$' + formatRevenue(value),
+                      callback: (value) => formatRevenue(value) + ' VND',
                     },
                   },
                   x: {
