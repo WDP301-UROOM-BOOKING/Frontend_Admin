@@ -6,7 +6,7 @@ import ReportFeedbackSaga from "./reportedFeedback/saga";
 import MessageSaga from './message/saga';
 import PromotionSaga from './promotion/saga';
 import AdminDashboardSaga from './adminDashboard/saga';
-
+import HotelSaga from './hotel/saga';
 export default function* rootSaga() {
   yield all([
     AuthSaga(),
@@ -15,5 +15,6 @@ export default function* rootSaga() {
     MessageSaga(),
     PromotionSaga(),
     AdminDashboardSaga(),
+    HotelSaga(),
   ]);
 }

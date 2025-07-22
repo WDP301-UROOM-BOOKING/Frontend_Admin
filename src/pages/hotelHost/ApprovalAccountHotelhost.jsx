@@ -28,19 +28,19 @@ export default function ApprovalAccountHotelhost() {
                   <tr>
                     <td>Hilton Hotel</td>
                     <td>
-                      <button class="btn btn-warning">pendding</button>
+                      <button class="btn btn-warning">pending</button>
                     </td>
                   </tr>
                   <tr>
                     <td>Sofitel Hotel</td>
                     <td>
-                      <button class="btn btn-warning">pendding</button>
+                      <button class="btn btn-warning">pending</button>
                     </td>
                   </tr>
                   <tr>
                     <td>Marriott Hotel</td>
                     <td>
-                      <button class="btn btn-warning">pendding</button>
+                      <button class="btn btn-warning">pending</button>
                     </td>
                   </tr>
                 </tbody>

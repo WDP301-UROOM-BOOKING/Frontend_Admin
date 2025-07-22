@@ -98,6 +98,10 @@ const ApiConstants = {
   // CUSTOMER MANAGEMENT (Admin)
   LOCK_CUSTOMER: "/auth/lock-customer/:id",
   UNLOCK_CUSTOMER: "/auth/unlock-customer/:id",
+  // HOTEL
+  FETCH_HOTELS_NOT_APPROVAL: "/hotel/get-hotels-not-approval",
+  UPDATE_APPROVAL_STATUS: "/hotel/update-approval-status/:approvalId",
+  GET_APPROVAL_BY_ID:"hotel/get-approval-by-id/:id"
 };
 
 export default ApiConstants;
