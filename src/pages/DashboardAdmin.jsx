@@ -220,7 +220,7 @@ function AdminDashboard() {
                   <a href="#" onClick={() => handleTabChange("approvals")}>
                     <i className="bi bi-check-circle"></i>
                     <span>Phê duyệt Khách sạn</span>
-                    <span className="badge bg-danger">58</span>
+                    <span className></span>
                   </a>
                 </li>
               </ul>
@@ -258,7 +258,7 @@ function AdminDashboard() {
                   <a href="#" onClick={() => handleTabChange("reports")}>
                     <i className="bi bi-flag"></i>
                     <span>Báo cáo vi phạm</span>
-                    <span className="badge bg-warning">12</span>
+                    <span className></span>
                   </a>
                 </li>
               </ul>
