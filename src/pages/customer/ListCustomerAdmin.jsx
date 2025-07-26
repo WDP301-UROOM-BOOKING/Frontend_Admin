@@ -10,6 +10,10 @@ import pdfMake from "pdfmake/build/pdfmake";
 import pdfFonts from "pdfmake/build/vfs_fonts";
 pdfMake.vfs = pdfFonts.vfs;
 
+const BASE_URL = process.env.REACT_APP_ENVIRONMENT === 'production' 
+  ? process.env.REACT_APP_BACKEND_CUSTOMER_URL_PRODUCT 
+  : process.env.REACT_APP_BACKEND_CUSTOMER_URL_DEVELOPMENT;
+
 const LOCK_REASONS = [
   "Spam/quảng cáo (Spam/Advertisement)",
   "Lừa đảo/thông tin giả (Fraud/Fake Information)",
@@ -88,7 +92,7 @@ function ListCustomerAdmin() {
     const fetchCustomers = async () => {
       try {
         const token = localStorage.getItem("token");
-        let url = `http://localhost:5000/api/auth/all-customers?page=${page}&limit=${limit}`;
+        let url = `${BASE_URL}/api/auth/all-customers?page=${page}&limit=${limit}`;
         if (search) url += `&search=${encodeURIComponent(search)}`;
         if (statusFilter) url += `&status=${statusFilter}`;
         if (sortOption) url += `&sort=${sortOption}`;
@@ -150,7 +154,7 @@ function ListCustomerAdmin() {
   const handleLockCustomer = async () => {
     if (!selectedCustomer) return;
     const token = localStorage.getItem("token");
-    const url = `http://localhost:5000/api${ApiConstants.LOCK_CUSTOMER.replace(":id", selectedCustomer._id)}`;
+    const url = `${BASE_URL}/api${ApiConstants.LOCK_CUSTOMER.replace(":id", selectedCustomer._id)}`;
     await fetch(url, {
       method: "PUT",
       headers: {
@@ -167,7 +171,7 @@ function ListCustomerAdmin() {
   const handleUnlockCustomer = async () => {
     if (!selectedCustomer) return;
     const token = localStorage.getItem("token");
-    const url = `http://localhost:5000/api${ApiConstants.UNLOCK_CUSTOMER.replace(":id", selectedCustomer._id)}`;
+    const url = `${BASE_URL}/api${ApiConstants.UNLOCK_CUSTOMER.replace(":id", selectedCustomer._id)}`;
     await fetch(url, {
       method: "PUT",
       headers: {
@@ -205,7 +209,7 @@ function ListCustomerAdmin() {
     const token = localStorage.getItem("token");
     const idsToLock = selectedUsers.filter(u => !u.isLocked).map(u => u._id);
     await Promise.all(idsToLock.map(id => {
-      const url = `http://localhost:5000/api${ApiConstants.LOCK_CUSTOMER.replace(":id", id)}`;
+      const url = `${BASE_URL}/api${ApiConstants.LOCK_CUSTOMER.replace(":id", id)}`;
       return fetch(url, {
       method: "PUT",
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
@@ -221,7 +225,7 @@ function ListCustomerAdmin() {
     const token = localStorage.getItem("token");
     const idsToUnlock = selectedUsers.filter(u => u.isLocked).map(u => u._id);
     await Promise.all(idsToUnlock.map(id => {
-      const url = `http://localhost:5000/api${ApiConstants.UNLOCK_CUSTOMER.replace(":id", id)}`;
+      const url = `${BASE_URL}/api${ApiConstants.UNLOCK_CUSTOMER.replace(":id", id)}`;
       return fetch(url, {
       method: "PUT",
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
@@ -245,7 +249,7 @@ function ListCustomerAdmin() {
   const handleConfirmLock = async () => {
     if (!selectedCustomer) return;
     const token = localStorage.getItem("token");
-    const url = `http://localhost:5000/api${ApiConstants.LOCK_CUSTOMER.replace(":id", selectedCustomer._id)}`;
+    const url = `${BASE_URL}/api${ApiConstants.LOCK_CUSTOMER.replace(":id", selectedCustomer._id)}`;
     const res = await fetch(url, {
       method: "PUT",
       headers: {

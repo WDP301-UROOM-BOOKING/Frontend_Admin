@@ -11,6 +11,10 @@ import { Modal, Form, Button } from "react-bootstrap";
 import ButtonGroup from "react-bootstrap/ButtonGroup";
 import ToggleButton from "react-bootstrap/ToggleButton";
 
+const BASE_URL = process.env.REACT_APP_ENVIRONMENT === 'production' 
+  ? process.env.REACT_APP_BACKEND_CUSTOMER_URL_PRODUCT 
+  : process.env.REACT_APP_BACKEND_CUSTOMER_URL_DEVELOPMENT;
+
 const LOCK_REASONS = [
   "Spam/quảng cáo (Spam/Advertisement)",
   "Lừa đảo/thông tin giả (Fraud/Fake Information)",
@@ -71,7 +75,7 @@ const HotelManagement = ({ setActiveTab }) => {
     const token = localStorage.getItem("token");
     const idsToUnlock = selectedHosts.filter(h => h.isLocked).map(h => h._id);
     await Promise.all(idsToUnlock.map(id => {
-      const url = `http://localhost:5000/api${ApiConstants.UNLOCK_CUSTOMER.replace(":id", id)}`;
+      const url = `${BASE_URL}/api${ApiConstants.UNLOCK_CUSTOMER.replace(":id", id)}`;
       return fetch(url, {
         method: "PUT",
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
@@ -87,7 +91,7 @@ const HotelManagement = ({ setActiveTab }) => {
       setLoading(true);
       try {
         const token = localStorage.getItem("token");
-        let url = `http://localhost:5000/api/auth/owners?page=${page}&limit=${limit}`;
+        let url = `${BASE_URL}/api/auth/owners?page=${page}&limit=${limit}`;
         if (search) url += `&search=${encodeURIComponent(search)}`;
         if (statusFilter) url += `&status=${statusFilter}`;
         if (sortOption) url += `&sort=${sortOption}`;
@@ -135,7 +139,7 @@ const HotelManagement = ({ setActiveTab }) => {
   const handleConfirmLock = async () => {
     if (!selectedHost) return;
     const token = localStorage.getItem("token");
-    const url = `http://localhost:5000/api${ApiConstants.LOCK_CUSTOMER.replace(":id", selectedHost._id)}`;
+    const url = `${BASE_URL}/api${ApiConstants.LOCK_CUSTOMER.replace(":id", selectedHost._id)}`;
     const res = await fetch(url, {
       method: "PUT",
       headers: {
@@ -161,7 +165,7 @@ const HotelManagement = ({ setActiveTab }) => {
   const handleUnlockHost = async () => {
     if (!selectedHost) return;
     const token = localStorage.getItem("token");
-    const url = `http://localhost:5000/api${ApiConstants.UNLOCK_CUSTOMER.replace(":id", selectedHost._id)}`;
+    const url = `${BASE_URL}/api${ApiConstants.UNLOCK_CUSTOMER.replace(":id", selectedHost._id)}`;
     const res = await fetch(url, {
       method: "PUT",
       headers: {

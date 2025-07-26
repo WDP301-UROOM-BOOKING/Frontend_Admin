@@ -27,6 +27,10 @@ import ButtonGroup from 'react-bootstrap/ButtonGroup';
 import ToggleButton from 'react-bootstrap/ToggleButton';
 import ApiConstants from '../../adapter/ApiConstants';
 
+const BASE_URL = process.env.REACT_APP_ENVIRONMENT === 'production' 
+  ? process.env.REACT_APP_BACKEND_CUSTOMER_URL_PRODUCT 
+  : process.env.REACT_APP_BACKEND_CUSTOMER_URL_DEVELOPMENT;
+
 const LOCK_REASONS = [
   "Spam/quảng cáo (Spam/Advertisement)",
   "Lừa đảo/thông tin giả (Fraud/Fake Information)",
@@ -120,7 +124,7 @@ const DetailHotelHostAdmin = () => {
   const handleConfirmLock = async () => {
     if (!host) return;
     const token = localStorage.getItem("token");
-    const url = `http://localhost:5000/api${ApiConstants.LOCK_CUSTOMER.replace(":id", host._id)}`;
+    const url = `${BASE_URL}/api${ApiConstants.LOCK_CUSTOMER.replace(":id", host._id)}`;
     const res = await fetch(url, {
       method: "PUT",
       headers: {
@@ -145,7 +149,7 @@ const DetailHotelHostAdmin = () => {
   const handleUnlockHost = async () => {
     if (!host) return;
     const token = localStorage.getItem("token");
-    const url = `http://localhost:5000/api${ApiConstants.UNLOCK_CUSTOMER.replace(":id", host._id)}`;
+    const url = `${BASE_URL}/api${ApiConstants.UNLOCK_CUSTOMER.replace(":id", host._id)}`;
     const res = await fetch(url, {
       method: "PUT",
       headers: {

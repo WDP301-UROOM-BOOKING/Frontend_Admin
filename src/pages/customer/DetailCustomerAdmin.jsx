@@ -17,6 +17,10 @@ import { useRef } from "react";
 import ButtonGroup from "react-bootstrap/ButtonGroup";
 import ToggleButton from "react-bootstrap/ToggleButton";
 
+const BASE_URL = process.env.REACT_APP_ENVIRONMENT === 'production' 
+  ? process.env.REACT_APP_BACKEND_CUSTOMER_URL_PRODUCT 
+  : process.env.REACT_APP_BACKEND_CUSTOMER_URL_DEVELOPMENT;
+
 const LOCK_REASONS = [
   "Spam/quảng cáo (Spam/Advertisement)",
   "Lừa đảo/thông tin giả (Fraud/Fake Information)",
@@ -57,7 +61,7 @@ export default function CustomerDetail({ show, handleClose, customer, onLockChan
   const handleConfirmLock = async () => {
     if (!customer) return;
     const token = localStorage.getItem("token");
-    const url = `http://localhost:5000/api${ApiConstants.LOCK_CUSTOMER.replace(":id", customer._id)}`;
+    const url = `${BASE_URL}/api${ApiConstants.LOCK_CUSTOMER.replace(":id", customer._id)}`;
     await fetch(url, {
       method: "PUT",
       headers: {
@@ -77,7 +81,7 @@ export default function CustomerDetail({ show, handleClose, customer, onLockChan
   const handleUnlockCustomer = async () => {
     if (!customer) return;
     const token = localStorage.getItem("token");
-    const url = `http://localhost:5000/api${ApiConstants.UNLOCK_CUSTOMER.replace(":id", customer._id)}`;
+    const url = `${BASE_URL}/api${ApiConstants.UNLOCK_CUSTOMER.replace(":id", customer._id)}`;
     await fetch(url, {
       method: "PUT",
       headers: {
