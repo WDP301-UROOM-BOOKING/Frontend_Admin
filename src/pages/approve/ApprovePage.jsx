@@ -2,17 +2,31 @@ import ApiConstants from "@adapter/ApiConstants";
 import api from "@libs/api";
 import HotelActions from "@redux/hotel/actions";
 import React, { useEffect, useState } from "react";
-import { Button, Col, Modal, Row } from "react-bootstrap";
+import { Button, Col, Modal, Row, Card } from "react-bootstrap";
 import { useDispatch, useSelector } from "react-redux";
 import { showToast, ToastProvider } from "../../components/ToastContainer";
+import { FaMapMarkerAlt, FaClock, FaPhoneAlt, FaEnvelope, FaStar, FaWifi, FaSwimmer, FaDog, FaUsers } from "react-icons/fa";
+// Tiện nghi - ánh xạ tên sang icon
+const FACILITY_ICONS = {
+  'Free Wi-Fi': <FaWifi className="me-2" />, // ví dụ tên
+  'Swimming Pool': <FaSwimmer className="me-2" />,
+  'Pet-Friendly': <FaDog className="me-2" />,
+  'Conference Room': <FaUsers className="me-2" />,
+};
 const ApprovePage = ({props}) => {
 
   const dispatch = useDispatch();
-    const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
   const [approvalToConfirm, setApprovalToConfirm] = useState(null);
   const [selectedApproval, setSelectedApproval] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
-   const [confirmModal, setConfirmModal] = useState(false);
+  const [confirmModal, setConfirmModal] = useState(false);
+  // Pagination, search, filter, sort states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize] = useState(5);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [sortOption, setSortOption] = useState("newest");
   const recentApprovals = useSelector(state => state?.Hotel?.hotelsNotApproval)
   useEffect(() => {
     fetchApprovals();
@@ -143,6 +157,38 @@ const ApprovePage = ({props}) => {
     }
   };
 
+  // Filter, search, sort, and paginate approvals
+  const getFilteredApprovals = () => {
+    let filtered = recentApprovals || [];
+    // Search
+    if (searchTerm.trim() !== "") {
+      const lower = searchTerm.toLowerCase();
+      filtered = filtered.filter(item =>
+        (item?._id && item._id.toString().toLowerCase().includes(lower)) ||
+        (item?.hotelName && item.hotelName.toString().toLowerCase().includes(lower)) ||
+        (item?.owner && item.owner.toString().toLowerCase().includes(lower))
+      );
+    }
+    // Status filter
+    if (statusFilter !== "ALL") {
+      filtered = filtered.filter(item => item.adminStatus === statusFilter);
+    }
+    // Sort
+    if (sortOption === "newest") {
+      filtered = filtered.sort((a, b) => new Date(b.requestDate) - new Date(a.requestDate));
+    } else if (sortOption === "hotelNameAZ") {
+      filtered = filtered.sort((a, b) => (a.hotelName || "").localeCompare(b.hotelName || ""));
+    }
+    return filtered;
+  };
+
+  const filteredApprovals = getFilteredApprovals();
+  const totalResults = filteredApprovals.length;
+  const totalPages = Math.ceil(totalResults / pageSize);
+  const paginatedApprovals = filteredApprovals.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const startResult = totalResults === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+  const endResult = Math.min(currentPage * pageSize, totalResults);
+
   return (
     <div className="approvals-content">
       <div className="page-header">
@@ -166,18 +212,40 @@ const ApprovePage = ({props}) => {
         <div className="filters-bar">
           <div className="search-box">
             <i className="bi bi-search"></i>
-            <input type="text" placeholder="Tìm kiếm yêu cầu phê duyệt..." />
+            <input
+              type="text"
+              placeholder="Tìm kiếm theo ID, tên khách sạn, ID chủ sở hữu..."
+              value={searchTerm}
+              onChange={e => {
+                setSearchTerm(e.target.value);
+                setCurrentPage(1);
+              }}
+            />
           </div>
           <div className="filters">
-            <select className="form-select">
-              <option>Tất cả trạng thái</option>
-              <option>Đang chờ</option>
-              <option>Đang xem xét</option>
+            <select
+              className="form-select"
+              value={statusFilter}
+              onChange={e => {
+                setStatusFilter(e.target.value);
+                setCurrentPage(1);
+              }}
+            >
+              <option value="ALL">Tất cả trạng thái</option>
+              <option value="PENDING">Đang chờ</option>
+              <option value="APPROVED">Đã duyệt</option>
+              <option value="REJECTED">Từ chối</option>
             </select>
-            <select className="form-select">
-              <option>Sắp xếp theo</option>
-              <option>Ngày gửi (Mới nhất)</option>
-              <option>Tên khách sạn A-Z</option>
+            <select
+              className="form-select"
+              value={sortOption}
+              onChange={e => {
+                setSortOption(e.target.value);
+                setCurrentPage(1);
+              }}
+            >
+              <option value="newest">Ngày gửi (Mới nhất)</option>
+              <option value="hotelNameAZ">Tên khách sạn A-Z</option>
             </select>
           </div>
         </div>
@@ -200,8 +268,8 @@ const ApprovePage = ({props}) => {
               </tr>
             </thead>
             <tbody>
-              {recentApprovals.map((approval) => (
-                <tr key={approval.id}>
+              {paginatedApprovals.map((approval) => (
+                <tr key={approval.id || approval._id}>
                   <td>
                     <input type="checkbox" className="form-check-input" />
                   </td>
@@ -235,7 +303,7 @@ const ApprovePage = ({props}) => {
                         <i className="bi bi-check-lg"></i>
                       </button>
                       <button className="btn btn-sm btn-danger" title="Từ chối"
-                      onClick={() => approval && updateApprovalStatus(approval?._id, "REJECTED")}>
+                      onClick={() => approval && updateApprovalStatus(approval?._id, "REJECTED")}> 
                         <i className="bi bi-x-lg"></i>
                       </button>
                     </div>
@@ -246,33 +314,25 @@ const ApprovePage = ({props}) => {
           </table>
         </div>
 
-        <div className="pagination-container">
-          <div className="pagination-info">Hiển thị 1-5 của 58 kết quả</div>
-          <ul className="pagination">
-            <li className="page-item disabled">
-              <a className="page-link" href="#">
+        <div className="pagination-container d-flex align-items-center justify-content-between">
+          <div className="pagination-info">
+            Hiển thị {startResult}-{endResult} của {totalResults} kết quả
+          </div>
+          <ul className="pagination mb-0">
+            <li className={`page-item${currentPage === 1 ? " disabled" : ""}`}>
+              <button className="page-link" onClick={() => setCurrentPage(currentPage - 1)} disabled={currentPage === 1}>
                 Trước
-              </a>
+              </button>
             </li>
-            <li className="page-item active">
-              <a className="page-link" href="#">
-                1
-              </a>
-            </li>
-            <li className="page-item">
-              <a className="page-link" href="#">
-                2
-              </a>
-            </li>
-            <li className="page-item">
-              <a className="page-link" href="#">
-                3
-              </a>
-            </li>
-            <li className="page-item">
-              <a className="page-link" href="#">
+            {Array.from({ length: totalPages }, (_, idx) => (
+              <li key={idx + 1} className={`page-item${currentPage === idx + 1 ? " active" : ""}`}>
+                <button className="page-link" onClick={() => setCurrentPage(idx + 1)}>{idx + 1}</button>
+              </li>
+            ))}
+            <li className={`page-item${currentPage === totalPages || totalPages === 0 ? " disabled" : ""}`}>
+              <button className="page-link" onClick={() => setCurrentPage(currentPage + 1)} disabled={currentPage === totalPages || totalPages === 0}>
                 Sau
-              </a>
+              </button>
             </li>
           </ul>
         </div>
@@ -303,49 +363,89 @@ const ApprovePage = ({props}) => {
         </Modal.Footer>
       </Modal>
 
-      <Modal show={showDetailModal} onHide={() => setShowDetailModal(false)}>
+      <Modal show={showDetailModal} onHide={() => setShowDetailModal(false)} size="xl" centered>
         <Modal.Header closeButton>
           <Modal.Title>Chi tiết khách sạn</Modal.Title>
         </Modal.Header>
-        <Modal.Body>
+        <Modal.Body style={{ background: '#f8f9fa' }}>
           {selectedApproval && (
-            <div>
-              <Row>
-                <Col md={12}>
-                  <h6>Thông tin khách sạn:</h6>
-                  <p><strong>Tên khách sạn:</strong> {selectedApproval.hotelName}</p>
-                  <p><strong>Địa chỉ:</strong> {selectedApproval.address || 'N/A'}</p>
-                  <p><strong>Số điện thoại:</strong> {selectedApproval.phoneNumber || 'N/A'}</p>
-                  <p><strong>Email:</strong> {selectedApproval.email || 'N/A'}</p>
-                  <p><strong>Sao đánh giá:</strong> {selectedApproval?.star}</p>
-                  <p><strong>Ngày yêu cầu:</strong> {new Date(selectedApproval.requestDate).toLocaleDateString('vi-VN')}</p>
-                  {selectedApproval.paymentDate && (
-                    <p><strong>Ngày thanh toán:</strong> {new Date(selectedApproval.paymentDate).toLocaleDateString('vi-VN')}</p>
-                  )}
-                </Col>  
-              </Row>
-              {selectedApproval.accountHolderName && (
-                <Row className="mt-3">
-                  <Col md={12}>
-                    <h6>Thông tin ngân hàng:</h6>
-                    <p><strong>Chủ tài khoản:</strong> {selectedApproval.accountHolderName}</p>
-                    <p><strong>Số tài khoản:</strong> {selectedApproval.accountNumber}</p>
-                    <p><strong>Ngân hàng:</strong> {selectedApproval.bankName}</p>
-                    {selectedApproval.branchName && (
-                      <p><strong>Chi nhánh:</strong> {selectedApproval.branchName}</p>
-                    )}
+            <Card className="shadow-sm border-0 mb-0" style={{ borderRadius: 16 }}>
+              <Card.Body>
+                <Row>
+                  {/* Ảnh lớn và 4 ảnh nhỏ */}
+                  <Col md={6} className="mb-4 mb-md-0">
+                    {/* Ảnh cover lớn */}
+                    <div style={{ width: '100%', borderRadius: 16, overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.07)', marginBottom: 0 }}>
+                      <img
+                        src={selectedApproval.images && selectedApproval.images.length > 0 ? selectedApproval.images[0].url : 'https://i.pinimg.com/736x/8f/1c/a2/8f1ca2029e2efceebd22fa05cca423d7.jpg'}
+                        alt="hotel-cover"
+                        style={{ width: '100%', height: 300, objectFit: 'cover', display: 'block' }}
+                      />
+                    </div>     
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', gap: 0, marginTop: 8 }}>
+                      {(selectedApproval.images && selectedApproval.images.length > 1
+                        ? selectedApproval.images.slice(1, 5)
+                        : []
+                      ).map((img, idx, arr) => (
+                        <div key={idx} style={{ borderRadius: 8, overflow: 'hidden', border: '2px solid #e3e3e3', width: `calc(25% - 6px)`, height: 70, boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+                          <img
+                            src={img.url}
+                            alt={`hotel-thumb-${idx}`}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.2s', cursor: 'pointer' }}
+                            onMouseOver={e => e.currentTarget.style.transform = 'scale(1.07)'}
+                            onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </Col>
+                  {/* Thông tin khách sạn */}
+                  <Col md={6}>
+                    <div className="ps-md-3 pt-3 pt-md-0">
+                      <h3 className="fw-bold mb-2" style={{ color: '#1a237e' }}>{selectedApproval.hotelName} <FaStar style={{ color: '#FFD600', marginLeft: 8, marginBottom: 4 }} /> <span style={{ fontSize: 18, color: '#FFD600' }}>{selectedApproval?.star || ''}</span></h3>
+                      {/* Địa chỉ: label trên 1 dòng, địa chỉ chi tiết xuống dòng dưới */}
+                      <div className="mb-3 d-flex align-items-start flex-column">
+                        <span className="fw-semibold d-flex align-items-center"><FaMapMarkerAlt className="me-2" style={{ color: '#1976d2' }} />Địa chỉ:</span>
+                        <span className="ms-4" style={{ wordBreak: 'break-word' }}>{selectedApproval.address || 'N/A'}</span>
+                      </div>
+                      <div className="mb-3 d-flex align-items-center"><FaClock className="me-2" style={{ color: '#1976d2' }} /><span className="fw-semibold">Giờ nhận phòng:</span> <span className="ms-2">{selectedApproval.checkInStart || '12:00'} đến {selectedApproval.checkInEnd || '13:00'}</span></div>
+                      <div className="mb-3 d-flex align-items-center"><FaClock className="me-2" style={{ color: '#1976d2' }} /><span className="fw-semibold">Giờ trả phòng:</span> <span className="ms-2">{selectedApproval.checkOutStart || '10:00'} đến {selectedApproval.checkOutEnd || '11:00'}</span></div>
+                      <div className="mb-3"><span className="fw-bold">Mô tả về khách sạn</span><div className="mt-1">{selectedApproval.description || 'Không có mô tả.'}</div></div>
+                      <div className="mb-3"><span className="fw-bold">Liên lạc của khách sạn</span>
+                        <div className="d-flex align-items-center mt-1"><FaPhoneAlt className="me-2" style={{ color: '#1976d2' }} />{selectedApproval.phoneNumber || 'N/A'}</div>
+                        <div className="d-flex align-items-center mt-1"><FaEnvelope className="me-2" style={{ color: '#1976d2' }} />{selectedApproval.email || 'N/A'}</div>
+                      </div>
+                    </div>
                   </Col>
                 </Row>
-              )}
-              {selectedApproval.reason && (
-                <Row className="mt-3">
-                  <Col md={12}>
-                    <h6>Lý do:</h6>
-                    <p>{selectedApproval.reason}</p>
-                  </Col>
-                </Row>
-              )}
-            </div>
+                {/* Thông tin ngân hàng và lý do (nếu có) */}
+                {selectedApproval.accountHolderName && (
+                  <div className="mt-3">
+                    <Card className="border-0 bg-light p-2" style={{ borderRadius: 10 }}>
+                      <Card.Body className="py-2 px-3">
+                        <h6 className="fw-bold mb-2">Thông tin ngân hàng</h6>
+                        <div><span className="fw-semibold">Chủ tài khoản:</span> {selectedApproval.accountHolderName}</div>
+                        <div><span className="fw-semibold">Số tài khoản:</span> {selectedApproval.accountNumber}</div>
+                        <div><span className="fw-semibold">Ngân hàng:</span> {selectedApproval.bankName}</div>
+                        {selectedApproval.branchName && (
+                          <div><span className="fw-semibold">Chi nhánh:</span> {selectedApproval.branchName}</div>
+                        )}
+                      </Card.Body>
+                    </Card>
+                  </div>
+                )}
+                {selectedApproval.reason && (
+                  <div className="mt-3">
+                    <Card className="border-0 bg-light p-2" style={{ borderRadius: 10 }}>
+                      <Card.Body className="py-2 px-3">
+                        <h6 className="fw-bold mb-2">Lý do</h6>
+                        <div>{selectedApproval.reason}</div>
+                      </Card.Body>
+                    </Card>
+                  </div>
+                )}
+              </Card.Body>
+            </Card>
           )}
         </Modal.Body>
       </Modal>

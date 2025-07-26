@@ -228,7 +228,7 @@ const DetailHotelHostAdmin = () => {
     };
 
     fetchPayments();
-  });
+  }, []);
 
   return (
     <div className="container_fluid">
